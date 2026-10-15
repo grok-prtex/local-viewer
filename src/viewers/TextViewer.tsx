@@ -139,10 +139,11 @@ export default function TextViewer({ file }: { file: File }) {
     <div className="textview">
       <div className="toolbar">
         {canRender && (
-          <span className="seg" role="tablist">
-            <button role="tab" aria-selected={rendered} onClick={() => setRendered(true)} data-testid="mode-rendered">{mode === 'json' || mode === 'xml' ? '整形' : '表示'}</button>
-            <button role="tab" aria-selected={!rendered} onClick={() => setRendered(false)} data-testid="mode-source">ソース</button>
-          </span>
+          <button aria-pressed={!rendered} onClick={() => setRendered(!rendered)} data-testid="mode-toggle">
+            {rendered
+              ? (mode === 'json' || mode === 'xml' ? 'ソースを表示' : 'ソースを表示')
+              : (mode === 'json' || mode === 'xml' ? '整形して表示' : '表示に戻す')}
+          </button>
         )}
         {!showRendered && <button aria-pressed={wrap} onClick={() => setWrap(!wrap)}>折り返し</button>}
         {!showRendered && <button aria-pressed={showSearch} onClick={() => { setShowSearch(!showSearch); setTimeout(() => searchRef.current?.focus(), 0); }}>検索</button>}

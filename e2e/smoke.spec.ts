@@ -332,7 +332,7 @@ test.describe('テキスト・ソースコード', () => {
     await expect(page.getByTestId('markdown').locator('h1')).toHaveText('見出し');
     await expect(page.getByTestId('markdown').locator('script')).toHaveCount(0);
     await expect(page.getByTestId('markdown')).toContainText('外部の画像は読み込みません');
-    await page.getByTestId('mode-source').click();
+    await page.getByTestId('mode-toggle').click();
     await expect(page.getByTestId('code')).toContainText('# 見出し');
     expect(ext).toEqual([]);
   });
