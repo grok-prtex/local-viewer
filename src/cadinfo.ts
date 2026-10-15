@@ -2,6 +2,27 @@
 
 export interface ParasolidInfo { format: 'テキスト（x_t）' | 'バイナリ（x_b）'; fields: Record<string, string>; schema?: string; }
 
+/**
+ * バイナリ（x_b）の名前属性（文字列ノード：型 0x0054 + 長さ + インデックス + 文字列）を拾います。
+ * 実ファイル 2 件で STEP の部品名と完全に一致することを確認済み。階層や個数は分からないため、一覧だけを返します。
+ */
+export function parasolidNames(b: Uint8Array): string[] {
+  const out = new Set<string>();
+  for (let i = 0; i + 8 < b.length; i++) {
+    if (b[i] !== 0 || b[i + 1] !== 0x54) continue;
+    const L = ((b[i + 2] << 24) | (b[i + 3] << 16) | (b[i + 4] << 8) | b[i + 5]) >>> 0;
+    if (L < 2 || L > 300) continue;
+    const q = i + 6 + (b[i + 6] >= 0x80 ? 4 : 2);
+    if (q + L > b.length) continue;
+    let ok = true; for (let k = q; k < q + L; k++) if (b[k] < 0x20 || b[k] > 0x7e) { ok = false; break; }
+    if (!ok) continue;
+    const name = String.fromCharCode(...b.subarray(q, q + L));
+    if (name !== 'NONE') out.add(name);
+    i = q + L - 1;
+  }
+  return [...out].sort();
+}
+
 export function isParasolid(head: Uint8Array): boolean {
   const s = String.fromCharCode(...head.subarray(0, 200));
   return /\*\*PARASOLID/.test(s) || /^PS\0/.test(s) || /TRANSMIT FILE/.test(s);
