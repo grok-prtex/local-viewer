@@ -3,6 +3,7 @@ import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { lazy, Suspense } from 'react';
 import { Loading, ErrorBox } from '../ui';
+import { attachZoomGestures } from '../gesture';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { extract3D, type Pdf3D } from '../pdf3d';
 const Pdf3DView = lazy(() => import('./Pdf3DView'));
@@ -13,6 +14,7 @@ export default function PdfViewer({ file }: { file: File }) {
   const host = useRef<HTMLDivElement>(null);
   const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1); zoomRef.current = zoom;
   const [err, setErr] = useState('');
   const [model, setModel] = useState<Pdf3D | null>(null);
   const [mode, setMode] = useState<'pages' | '3d'>('pages');
@@ -41,7 +43,9 @@ export default function PdfViewer({ file }: { file: File }) {
 
   useEffect(() => {
     if (!doc || mode !== 'pages') return;
-    const el = host.current!; el.innerHTML = '';
+    const el = host.current!;
+    const keep = { l: el.scrollLeft, t: el.scrollTop };
+    el.innerHTML = '';
     let cancelled = false; setRendered(0);
     const width = Math.min(el.clientWidth || 800, 1000);
     const io = new IntersectionObserver((entries) => {
@@ -74,9 +78,35 @@ export default function PdfViewer({ file }: { file: File }) {
         c.style.width = v.width + 'px'; c.style.height = v.height + 'px';
         el.appendChild(c); io.observe(c);
       }
+      el.scrollLeft = keep.l; el.scrollTop = keep.t;
     })();
     return () => { cancelled = true; io.disconnect(); };
   }, [doc, zoom, mode]);
+
+  // Ctrl+ホイール／ピンチ：まず CSS で見た目だけ拡大し、止まってから新しい倍率で描き直します（くっきり表示）
+  const live = useRef({ k: 1, t: 0 as unknown as ReturnType<typeof setTimeout> });
+  useEffect(() => {
+    const el = host.current; if (!el || !doc || mode !== 'pages') return;
+    const off = attachZoomGestures(el, {
+      zoom: (f0, cx, cy) => {
+        const L = live.current;
+        const zNow = zoomRef.current * L.k;
+        const f = Math.max(0.25, Math.min(5, zNow * f0)) / zNow;
+        if (f === 1) return;
+        L.k *= f;
+        const px = el.scrollLeft + cx, py = el.scrollTop + cy;
+        el.querySelectorAll<HTMLCanvasElement>('canvas.pdf-page').forEach((c) => {
+          const w = parseFloat(c.style.width), h = parseFloat(c.style.height);
+          c.style.width = w * f + 'px'; c.style.height = h * f + 'px';
+        });
+        el.scrollLeft = px * f - cx; el.scrollTop = py * f - cy;
+        clearTimeout(L.t);
+        L.t = setTimeout(() => { const k = L.k; L.k = 1; setZoom((z) => Math.max(0.25, Math.min(5, z * k))); }, 250);
+      },
+      pan: (dx, dy) => { el.scrollLeft -= dx; el.scrollTop -= dy; },
+    });
+    return () => { off(); clearTimeout(live.current.t); };
+  }, [doc, mode]);
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!doc) return <Progress p={prog} />;

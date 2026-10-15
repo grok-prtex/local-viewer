@@ -128,3 +128,4 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .three-layout { display: grid; grid-template-columns: 1fr 260px; gap: var(--sp-3); }
 @media (max-width: 860px) { .three-layout { grid-template-columns: 1fr; } }
 .picked { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.pdf-pages { touch-action: pan-x pan-y; overscroll-behavior: contain; }

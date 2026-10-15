@@ -3,6 +3,7 @@ import { extOf } from '../detect';
 import { imageSub, jpegCandidates, type ImageSub } from '../media';
 import { ErrorBox } from '../ui';
 import { Progress } from '../progress';
+import { attachZoomGestures } from '../gesture';
 
 interface Page { url: string; w: number; h: number; label?: string; }
 
@@ -118,6 +119,17 @@ export default function ImageViewer({ file }: { file: File }) {
     return { s, x: px - (px - v.x) * k, y: py - (py - v.y) * k };
   });
 
+  const ready = !!(res && cur);
+  useEffect(() => {
+    const el = host.current; if (!el) return;
+    return attachZoomGestures(el, {
+      plainWheelZooms: true,
+      zoom: (f, x, y) => zoomAt(f, x, y),
+      pan: (dx, dy) => setView((v) => v && { ...v, x: v.x + dx, y: v.y + dy }),
+      onPinchStart: () => { drag.current = null; },
+    });
+  }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!res || !cur) return <Progress p={{ stage, stages: ['読み込み中', '解析中'], detail: sub === 'heic' ? 'HEIC を WebAssembly で展開しています' : undefined }} onCancel={sub === 'heic' ? () => { heicJob.cancel?.(); } : undefined} />;
   return (
@@ -136,14 +148,13 @@ export default function ImageViewer({ file }: { file: File }) {
         <span className="mono dims" data-testid="img-dims">{cur.w} × {cur.h} px · {Math.round((view?.s ?? 1) * 100)}%</span>
       </div>
       <div ref={host} className={'img-host' + (dark ? ' dark' : '')} data-testid="img-host"
-        onWheel={(e) => { const r = host.current!.getBoundingClientRect(); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, e.clientX - r.left, e.clientY - r.top); }}
-        onPointerDown={(e) => { drag.current = { x: e.clientX, y: e.clientY }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); }}
-        onPointerMove={(e) => { const d = drag.current; if (!d) return; setView((v) => v && { ...v, x: v.x + e.clientX - d.x, y: v.y + e.clientY - d.y }); drag.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerDown={(e) => { if (e.pointerType === 'touch' && !e.isPrimary) { drag.current = null; return; } drag.current = { x: e.clientX, y: e.clientY }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); }}
+        onPointerMove={(e) => { const d = drag.current; if (!d || !e.isPrimary) return; setView((v) => v && { ...v, x: v.x + e.clientX - d.x, y: v.y + e.clientY - d.y }); drag.current = { x: e.clientX, y: e.clientY }; }}
         onPointerUp={() => { drag.current = null; }}
         onDoubleClick={fit}>
         {view && <img src={cur.url} alt={file.name} draggable={false} data-testid="img" style={{ width: cur.w * view.s, height: cur.h * view.s, transform: `translate(${view.x}px, ${view.y}px)` }} />}
       </div>
-      <p className="hint">{res.note ? res.note + ' ' : ''}ホイールで拡大縮小、ドラッグで移動、ダブルクリックで全体表示します。</p>
+      <p className="hint">{res.note ? res.note + ' ' : ''}ホイール・ピンチで拡大縮小、ドラッグ（2 本指）で移動、ダブルクリックで全体表示します。</p>
     </div>
   );
 }

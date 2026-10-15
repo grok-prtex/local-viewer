@@ -280,3 +280,38 @@ test('ASCII STL の複数 solid をツリーに表示', async ({ page }) => {
   await expect(page.getByTestId('model-tree')).toContainText('partA');
   await expect(page.getByTestId('model-tree')).toContainText('partB');
 });
+
+test('Ctrl+ホイールはビューア内だけで拡大（画像・PDF）', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.pdf');
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]').first()).toBeVisible();
+  // ビューア内の wheel が preventDefault されていること（＝ブラウザのページ拡大が起きない）
+  await page.evaluate(() => { (window as any).__prevented = null; document.addEventListener('wheel', (e) => { (window as any).__prevented = e.defaultPrevented; }, { passive: true }); });
+  const box = (await page.getByTestId('pdf-pages').boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 100);
+  await page.keyboard.down('Control'); await page.mouse.wheel(0, -200); await page.keyboard.up('Control');
+  await expect.poll(() => page.evaluate(() => (window as any).__prevented)).toBe(true);
+  await expect(page.locator('.toolbar .mono').filter({ hasText: '%' }).first()).not.toHaveText('100%', { timeout: 3000 });
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]').first()).toBeVisible();
+});
+
+test('モバイル：2 本指ピンチで画像を拡大', async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, hasTouch: true, isMobile: true });
+  const page = await ctx.newPage();
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/media/sample.png');
+  const dims = page.getByTestId('img-dims');
+  await expect(dims).toBeVisible();
+  const before = await dims.innerText();
+  const b = (await page.getByTestId('img-host').boundingBox())!;
+  const cdp = await ctx.newCDPSession(page);
+  const cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+  const pts = (d: number) => [{ x: cx - d, y: cy }, { x: cx + d, y: cy }];
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: pts(20) });
+  for (let d = 30; d <= 120; d += 15) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pts(d) });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(dims).not.toHaveText(before);
+  // ページ自体は拡大されていない
+  expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
+  await ctx.close();
+});
