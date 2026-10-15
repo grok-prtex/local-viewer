@@ -29,6 +29,7 @@
 - `public/_headers` で厳しい Content-Security-Policy を設定し、ブラウザ側で通信先を強制的に制限しています。
   - `connect-src 'self'`、`default-src 'none'`、`form-action 'none'`、`frame-ancestors 'none'` など。
   - `/occt-worker.js` だけは、OpenCascade（Emscripten）が内部で `new Function` を使うため `'unsafe-eval'` を許可しています。この Worker も `connect-src 'self'` で、外部への通信はできません。
+- a-ef.com ゾーンの Cloudflare Web Analytics が HTML に計測スクリプトを自動挿入しないよう、`Cache-Control: no-transform` を付けています（CSP でも遮断されます）。
 - メール本文の HTML は、スクリプトを無効にした sandbox の iframe に表示します。外部画像（開封確認の追跡画像など）は CSP で読み込みを止めます。
 - E2E テスト（`e2e/smoke.spec.ts`）で、ファイルを開いた後のすべての通信が同一オリジンへの GET だけで、ファイルの中身や名前を含まないことを確認しています。
 
