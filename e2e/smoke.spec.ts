@@ -273,3 +273,10 @@ test('上方向切替と回転中心', async ({ page }) => {
   await expect(page.getByTestId('pivot')).toHaveText('回転中心：原点');
   expect(errors).toEqual([]);
 });
+
+test('ASCII STL の複数 solid をツリーに表示', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/multi.stl');
+  await expect(page.getByTestId('model-tree')).toContainText('partA');
+  await expect(page.getByTestId('model-tree')).toContainText('partB');
+});

@@ -70,7 +70,18 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
         set({ stage: '解析中' }); await nextFrame();
         const g = new STLLoader().parse(buf);
         if (!g.getAttribute('normal')) g.computeVertexNormals();
-        group.add(new THREE.Mesh(g, material()));
+        const names: string[] = g.userData.groupNames ?? [];
+        if (g.groups.length > 1) {
+          // ASCII STL の複数 solid は、名前付きの別部品に分けます（ツリー・選択・ゴースト表示が使えます）
+          const tn: TreeNode = { name: file.name, obj: group, children: [] };
+          g.groups.forEach((gr, i) => {
+            const sub = new THREE.BufferGeometry();
+            for (const k of ['position', 'normal'] as const) { const a = g.getAttribute(k); if (a) sub.setAttribute(k, new THREE.BufferAttribute((a.array as Float32Array).slice(gr.start * 3, (gr.start + gr.count) * 3), 3)); }
+            const m = new THREE.Mesh(sub, material()); m.name = names[i]?.trim() || `solid ${i + 1}`;
+            group.add(m); tn.children.push({ name: m.name, obj: m, children: [] });
+          });
+          root = tn;
+        } else group.add(new THREE.Mesh(g, material()));
       } else {
         set({ stage: '解析中', detail: 'WebAssembly を準備しています' });
         const r = await runOcct(pre!, kind, buf, set, j);
