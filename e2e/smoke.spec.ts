@@ -406,3 +406,16 @@ test('SQLite：テーブル一覧・行・読み取り専用 SQL', async ({ page
   await page.getByTestId('sql-run').click();
   await expect(page.getByText('書き込みや変更を伴う SQL は実行できません')).toBeVisible();
 });
+
+test('joblib：実行せずメタ情報だけ表示', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.joblib');
+  await expect(page.getByTestId('joblib')).toContainText('復元（実行）は一切しません');
+  await expect(page.getByTestId('joblib-strings')).toContainText('見本');
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample-zlib.joblib');
+  await expect(page.getByTestId('joblib')).toContainText('zlib');
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample-np.joblib');
+  await expect(page.getByTestId('joblib-types').or(page.getByTestId('joblib-strings'))).toContainText(/numpy|joblib/);
+});

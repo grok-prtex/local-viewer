@@ -3,7 +3,7 @@ import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'text' | 'sqlite' | 'access' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'text' | 'sqlite' | 'access' | 'joblib' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
@@ -21,6 +21,7 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite（閲覧のみ）', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
   { kind: 'access', label: 'Access', group: 'Office', exts: ['mdb', 'accdb'], ready: false },
+  { kind: 'joblib', label: 'joblib / pickle（メタ情報のみ）', group: 'Office', exts: ['joblib', 'pkl', 'pickle'], ready: true },
   { kind: 'eml', label: 'EML', group: 'Mail', exts: ['eml'], ready: true },
   { kind: 'msg', label: 'Outlook MSG', group: 'Mail', exts: ['msg'], ready: true },
   { kind: 'dxf', label: 'DXF', group: 'CAD', exts: ['dxf'], ready: true },
@@ -76,7 +77,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     if (imageSub(ext, head) === 'heic' || /^(avif|avis|crx )$/.test(brand)) return 'image';
     const mk = mediaKind(ext, head); if (mk) return mk;
   }
-  // SQLite 3
+  if (ext === 'joblib' || ext === 'pkl' || ext === 'pickle') return 'joblib';
   if (ascii(head).startsWith('SQLite format 3')) return 'sqlite';
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
   if (/^\s*ISO-10303-21/.test(text)) return 'step';
@@ -118,6 +119,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     case 'pptx': return 'pptx';
     case 'sqlite': case 'sqlite3': case 'db': case 'db3': return 'sqlite';
     case 'mdb': case 'accdb': return 'access';
+    case 'joblib': case 'pkl': case 'pickle': return 'joblib';
     case 'dwg': return 'dwg';
   }
   if (/^solid\s/i.test(text) && /facet/i.test(text)) return 'stl';
