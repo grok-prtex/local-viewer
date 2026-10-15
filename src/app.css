@@ -87,3 +87,7 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
   .groups { grid-template-columns: 1fr; } .drop { padding: var(--sp-12) var(--sp-4); } .drop-title { font-size: var(--fs-h4); }
   .three-host { height: 58vh; } .mail-head { grid-template-columns: 64px 1fr; }
 }
+
+.privacy-wrap { display: flex; flex-direction: column; gap: 2px; }
+.privacy-sub { margin: 0 0 0 16px; font-size: var(--fs-xs); color: var(--ink-3); }
+.head-actions { display: flex; gap: var(--sp-2); }

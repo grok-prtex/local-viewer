@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { detectFormat, extOf, FORMATS, formatInfo, type FormatKind } from './detect';
 import { Loading, ErrorBox } from './ui';
 import { size } from './viewers/Mail';
+import { loadSession, saveSession, clearSession, touchSession } from './session';
 
 const PdfViewer = lazy(() => import('./viewers/PdfViewer'));
 const EmlViewer = lazy(() => import('./viewers/EmlViewer'));
@@ -21,6 +22,26 @@ export default function App() {
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const current = stack[stack.length - 1];
+  const [restored, setRestored] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const files = await loadSession();
+        const opened: Opened[] = [];
+        for (const file of files) {
+          const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
+          opened.push({ file, kind: detectFormat(file.name, head) });
+        }
+        if (opened.length) setStack(opened);
+      } catch { /* IndexedDB が使えない環境では復元しません */ }
+      setRestored(true);
+    })();
+    const t = setInterval(() => { touchSession().catch(() => {}); }, 15_000);
+    return () => clearInterval(t);
+  }, []);
+  useEffect(() => { if (restored) saveSession(stack.map((o) => o.file)).catch(() => {}); }, [stack, restored]);
+  const wipe = () => { setStack([]); clearSession().catch(() => {}); };
 
   const open = useCallback(async (file: File, replace: boolean) => {
     const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
@@ -52,11 +73,14 @@ export default function App() {
           <span className="mono code">VWR-001</span>
           <span className="title">なんでもローカルビューア</span>
         </a>
-        <p className="privacy"><span className="dot" aria-hidden />ファイルはPCから外部送信されません／すべてブラウザ内で処理されます</p>
+        <div className="privacy-wrap">
+          <p className="privacy"><span className="dot" aria-hidden />ファイルはPCから外部送信されません／すべてブラウザ内で処理されます</p>
+          <p className="privacy-sub">開いたファイルはこのタブを閉じるまでブラウザ内に一時的に残ります（外部送信はしません）</p>
+        </div>
       </header>
       {picker}
       <main>
-        {!current ? (
+        {!restored ? <Loading>準備しています</Loading> : !current ? (
           <>
             <section className={'drop' + (drag ? ' over' : '')} onClick={() => input.current?.click()} data-testid="drop-zone"
               role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}>
@@ -85,7 +109,7 @@ export default function App() {
             </section>
             <section className="about">
               <h2>しくみ</h2>
-              <p>読み込んだファイルは、お使いのブラウザの中だけで解析して表示します。サーバーへのアップロード、通信、保存は一切行いません。ページを閉じると、ファイルの内容はブラウザからも消えます。</p>
+              <p>読み込んだファイルは、お使いのブラウザの中だけで解析して表示します。サーバーへのアップロードや通信は一切行いません。再読み込みしても表示が消えないよう、開いたファイルはこのタブを閉じるまでブラウザ内（IndexedDB）に一時的に残します。「閉じる／消去」を押すと、すぐに消去します。</p>
               <p>通信の制限はブラウザのセキュリティ設定（Content-Security-Policy）でも強制しているため、万一の不具合があってもファイルの内容が外部へ送られることはありません。</p>
             </section>
           </>
@@ -99,7 +123,10 @@ export default function App() {
                   <div className="mono meta">{formatInfo(current.kind)?.label ?? (extOf(current.file.name).toUpperCase() || '不明な形式')} · {size(current.file.size)}</div>
                 </div>
               </div>
-              <button onClick={() => input.current?.click()}>別のファイルを開く</button>
+              <div className="head-actions">
+                <button onClick={() => input.current?.click()}>別のファイルを開く</button>
+                <button className="ghost" onClick={wipe} data-testid="clear">閉じる／消去</button>
+              </div>
             </div>
             <div className="viewer-body" key={stack.length + current.file.name}>
               <Suspense fallback={<Loading>表示の準備をしています</Loading>}>

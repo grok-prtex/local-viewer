@@ -135,3 +135,24 @@ test('未対応形式', async ({ page }) => {
   await expect(page.getByText('この形式のファイルには、まだ対応していません。')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/12-unsupported.png` });
 });
+
+test('タブ内の一時保存（再読み込みで復元・消去・別コンテキストでは空）', async ({ page, browser, baseURL }) => {
+  const w = watch(page, baseURL!);
+  await openFixture(page, 'sample.pdf');
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]')).toHaveCount(1, { timeout: 20000 });
+  await page.reload();
+  await expect(page.getByTestId('file-name')).toHaveText('sample.pdf');
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]')).toHaveCount(1, { timeout: 20000 });
+  expect(await page.evaluate(() => Object.keys(localStorage).length)).toBe(0);
+  await page.screenshot({ path: `${SHOTS}/13-restored.png` });
+  await page.getByTestId('clear').click();
+  await expect(page.getByTestId('drop-zone')).toBeVisible();
+  await page.reload();
+  await expect(page.getByTestId('drop-zone')).toBeVisible();
+  const ctx = await browser.newContext();
+  const p2 = await ctx.newPage();
+  await p2.goto(baseURL! + '/');
+  await expect(p2.getByTestId('drop-zone')).toBeVisible();
+  await ctx.close();
+  w.assertClean('sample.pdf'); expect(w.problems).toEqual([]);
+});

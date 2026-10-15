@@ -24,7 +24,8 @@
 
 ## プライバシーの設計
 
-- ファイルは `File` API でブラウザのメモリに読み込み、その場で解析して表示します。サーバーには何も送りません。保存（localStorage・IndexedDB・Cookie）もしません。
+- ファイルは `File` API でブラウザ内に読み込み、その場で解析して表示します。サーバーには何も送りません。
+- 再読み込み対策として、開いたファイルはタブごとのセッション ID（sessionStorage）をキーに IndexedDB へ一時保存します。localStorage・Cookie は使いません。起動時に、閉じたタブ（45 秒以上更新のないセッション）のデータを削除します。「閉じる／消去」ですぐに消去できます。
 - 解析ライブラリ、WebAssembly、PDF の CMap・標準フォント、IBM Plex のフォントは、すべてこのサイト自身から配信しています。外部 CDN・解析ツール・広告は使っていません。
 - `public/_headers` で厳しい Content-Security-Policy を設定し、ブラウザ側で通信先を強制的に制限しています。
   - `connect-src 'self'`、`default-src 'none'`、`form-action 'none'`、`frame-ancestors 'none'` など。
