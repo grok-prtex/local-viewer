@@ -9,3 +9,6 @@ private-samples/
 **/private-samples/
 e2e/private/
 shots-private/
+
+acceptance/
+ACCEPTANCE.md
