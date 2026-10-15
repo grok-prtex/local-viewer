@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { extOf } from '../detect';
 import { imageSub, jpegCandidates, type ImageSub } from '../media';
-import { Loading, ErrorBox } from '../ui';
+import { ErrorBox } from '../ui';
+import { Progress } from '../progress';
 
 interface Page { url: string; w: number; h: number; label?: string; }
 
@@ -19,9 +20,11 @@ function probeNative(blob: Blob): Promise<Page> {
     im.src = url;
   });
 }
+const heicJob: { cancel?: () => void } = {};
 function heic(buf: ArrayBuffer): Promise<Page[]> {
   return new Promise((res, rej) => {
     const w = new Worker('/heic-worker.js?v=' + __COMMIT__);
+    heicJob.cancel = () => { w.terminate(); rej(new Error('cancelled')); };
     w.onmessage = async (e) => { w.terminate(); if (!e.data.ok) return rej(new Error(e.data.error)); res(await Promise.all(e.data.images.map(imageDataToUrl))); };
     w.onerror = (e) => { w.terminate(); rej(new Error(e.message)); };
     w.postMessage(buf, [buf]);
@@ -81,6 +84,7 @@ async function decode(file: File, sub: ImageSub): Promise<{ pages: Page[]; note?
 export default function ImageViewer({ file }: { file: File }) {
   const [res, setRes] = useState<{ pages: Page[]; note?: string } | null>(null);
   const [err, setErr] = useState('');
+  const [stage, setStage] = useState<'読み込み中' | '解析中'>('読み込み中');
   const [page, setPage] = useState(0);
   const [dark, setDark] = useState(false);
   const [view, setView] = useState<{ s: number; x: number; y: number } | null>(null);
@@ -93,10 +97,11 @@ export default function ImageViewer({ file }: { file: File }) {
     (async () => {
       const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
       const s = imageSub(extOf(file.name), head) ?? sub ?? 'native';
+      if (alive) setStage('解析中');
       const r = await decode(file, s); made = r.pages;
       if (alive) { setRes(r); setPage(0); setView(null); } else r.pages.forEach((p) => URL.revokeObjectURL(p.url));
-    })().catch((e) => { console.warn('image failed', e); if (alive) setErr('この画像を表示できませんでした。ファイルが壊れているか、まだ対応していない書き方の可能性があります。'); });
-    return () => { alive = false; made.forEach((p) => URL.revokeObjectURL(p.url)); };
+    })().catch((e) => { if (String(e?.message) === 'cancelled') { if (alive) setErr('読み込みをキャンセルしました。'); return; } console.warn('image failed', e); if (alive) setErr('この画像を表示できませんでした。ファイルが壊れているか、まだ対応していない書き方の可能性があります。'); });
+    return () => { alive = false; heicJob.cancel?.(); heicJob.cancel = undefined; made.forEach((p) => URL.revokeObjectURL(p.url)); };
   }, [file]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cur = res?.pages[page];
@@ -114,7 +119,7 @@ export default function ImageViewer({ file }: { file: File }) {
   });
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!res || !cur) return <Loading>画像を読み込んでいます</Loading>;
+  if (!res || !cur) return <Progress p={{ stage, stages: ['読み込み中', '解析中'], detail: sub === 'heic' ? 'HEIC を WebAssembly で展開しています' : undefined }} onCancel={sub === 'heic' ? () => { heicJob.cancel?.(); } : undefined} />;
   return (
     <div>
       <div className="toolbar">

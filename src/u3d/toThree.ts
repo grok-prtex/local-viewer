@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { material } from '../viewers/ThreeView';
 import type { U3DMesh } from './parse';
 
-export function loadU3D(buffer: ArrayBuffer): Promise<{ group: THREE.Group; progressiveSkipped: number }> {
+export function loadU3D(buffer: ArrayBuffer, job?: { cancel?: () => void }): Promise<{ group: THREE.Group; progressiveSkipped: number }> {
   return new Promise((resolve, reject) => {
     const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    if (job) job.cancel = () => { w.terminate(); reject(new Error('cancelled')); };
     w.onmessage = (e) => {
       w.terminate();
       if (!e.data.ok) { reject(new Error(e.data.error)); return; }

@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; }
 
-type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (dark: boolean) => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
+type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (dark: boolean) => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setGhost: (g: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
 
 function label(text: string, color: string) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -33,6 +33,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
   const [grid, setGrid] = useState(false);
   const [up, setUp] = useState<'z' | 'y'>(up0);
   const [colors, setColors] = useState(false);
+  const [ghost, setGhost] = useState(true);
   const [picked, setPicked] = useState('');
   const [pivotNote, setPivotNote] = useState('モデル中心');
   const [wire, setWire] = useState(false);
@@ -102,7 +103,20 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     const meshes: THREE.Mesh[] = []; object.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
     const orig = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>(meshes.map((m) => [m, m.material]));
     const distinct = meshes.map((_, i) => material(new THREE.Color().setHSL((i * 0.618034) % 1, 0.55, 0.55)));
-    const setColors = (on: boolean) => { meshes.forEach((m, i) => { m.material = on ? distinct[i] : orig.get(m)!; }); setW(wireNow); };
+    const base = new Map(orig);
+    const ghostCache = new Map<THREE.Material, THREE.Material>();
+    const ghostOf = (mt: THREE.Material) => {
+      let g = ghostCache.get(mt);
+      if (!g) { g = mt.clone(); g.transparent = true; g.opacity = 0.22; g.depthWrite = false; ghostCache.set(mt, g); }
+      return g;
+    };
+    let ghostOn = true;
+    const applyMats = () => meshes.forEach((m) => {
+      const b = base.get(m)!;
+      m.material = ghostOn && sel && m !== sel ? (Array.isArray(b) ? b.map(ghostOf) : ghostOf(b)) : b;
+      m.renderOrder = ghostOn && sel && m !== sel ? 1 : 0;
+    });
+    const setColors = (on: boolean) => { meshes.forEach((m, i) => base.set(m, on ? distinct[i] : orig.get(m)!)); applyMats(); setW(wireNow); };
     let wireNow = false;
     let sel: THREE.Mesh | null = null; let selBox: THREE.BoxHelper | null = null;
     const ray = new THREE.Raycaster(); let down = { x: 0, y: 0 };
@@ -115,6 +129,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       if (selBox) { scene.remove(selBox); selBox.dispose(); selBox = null; }
       sel = hit ? (hit.object as THREE.Mesh) : null;
       if (sel) { selBox = new THREE.BoxHelper(sel, 0xff7a00); scene.add(selBox); }
+      applyMats(); setW(wireNow);
       let n = ''; let o: THREE.Object3D | null = sel; while (o && !n) { n = o.name; o = o.parent; }
       setPicked(sel ? n || '（名前なし）' : '');
     };
@@ -134,6 +149,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       setUp: (u) => { upAxis = u; buildHelpers(); fit(); },
       setPivot: (o) => { pivotOrigin = o; fit(); setPivotNote(o ? '原点' : 'モデル中心'); },
       setColors,
+      setGhost: (g) => { ghostOn = g; applyMats(); setW(wireNow); },
     };
     const gizmo = makeGizmo();
     const resize = () => {
@@ -158,7 +174,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     return () => {
       cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp); renderer.domElement.removeEventListener('dblclick', onDbl);
-      distinct.forEach((m) => m.dispose());
+      distinct.forEach((m) => m.dispose()); ghostCache.forEach((m) => m.dispose());
       object.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
       renderer.dispose(); el.removeChild(renderer.domElement);
     };
@@ -173,6 +189,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
         <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>原点・グリッド</button>
         <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title="モデルの上方向を切り替えます">上方向 {up.toUpperCase()}</button>
         <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">回転中心：{pivotNote}</button>
+        <button aria-pressed={ghost} onClick={() => { setGhost(!ghost); api.current?.setGhost(!ghost); }} title="部品を選んだとき、ほかの部品を薄く表示します">ゴースト表示</button>
         <button aria-pressed={colors} onClick={() => { setColors(!colors); api.current?.setColors(!colors); }}>部品ごとに色分け</button>
         {size && <span className="mono dims">外形 {fmt(size.x)} × {fmt(size.y)} × {fmt(size.z)}</span>}
       </div>
