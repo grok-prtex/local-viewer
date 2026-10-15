@@ -10,7 +10,6 @@ const MsgViewer = lazy(() => import('./viewers/MsgViewer'));
 const CadViewer = lazy(() => import('./viewers/CadViewer'));
 const DxfViewer = lazy(() => import('./viewers/DxfViewer'));
 const SheetViewer = lazy(() => import('./viewers/SheetViewer'));
-const DocxViewer = lazy(() => import('./viewers/DocxViewer'));
 const ZipViewer = lazy(() => import('./viewers/ZipViewer'));
 const ImageViewer = lazy(() => import('./viewers/ImageViewer'));
 const MediaViewer = lazy(() => import('./viewers/MediaViewer'));
@@ -18,6 +17,7 @@ const CadInfoViewer = lazy(() => import('./viewers/CadInfoViewer'));
 const TextViewer = lazy(() => import('./viewers/TextViewer'));
 const SqlViewer = lazy(() => import('./viewers/SqlViewer'));
 const JoblibViewer = lazy(() => import('./viewers/JoblibViewer'));
+const AccessViewer = lazy(() => import('./viewers/AccessViewer'));
 
 interface Opened { file: File; kind: FormatKind; }
 const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text'] as const;
@@ -163,15 +163,15 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'msg': return <MsgViewer file={file} onOpen={openChild} canOpen={canOpen} />;
     case 'stl': case 'step': case 'iges': case 'u3d': return <CadViewer file={file} kind={kind} />;
     case 'dxf': return <DxfViewer file={file} />;
-    case 'sheet': return <SheetViewer file={file} xls={/\.xls$/i.test(file.name) && !/\.xlsx$/i.test(file.name)} />;
     case 'csv': return <SheetViewer file={file} csv />;
-    case 'docx': return <DocxViewer file={file} />;
+    case 'sheet': return <ErrorBox>Excel（XLSX / XLS）の表示は準備中です。CSV に書き出すか、PDF で受け取ると、ここで表示できます。</ErrorBox>;
+    case 'docx': return <ErrorBox>Word（DOCX）の表示は準備中です。PDF に書き出すと、ここで表示できます。</ErrorBox>;
     case 'image': return <ImageViewer file={file} />;
     case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
     case 'text': return <TextViewer file={file} />;
     case 'sqlite': return <SqlViewer file={file} />;
     case 'joblib': return <JoblibViewer file={file} />;
-    case 'access': return <ErrorBox>Access（MDB / ACCDB）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
+    case 'access': return <AccessViewer file={file} />;
     case 'parasolid': case 'sw': return <CadInfoViewer file={file} kind={kind} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
     case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;

@@ -1,3 +1,7 @@
+import process from 'process';
+(window as unknown as { process: typeof process }).process = process;
+import { Buffer } from 'buffer';
+(window as unknown as { Buffer: typeof Buffer }).Buffer = Buffer;
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@fontsource/ibm-plex-sans-jp/400.css';

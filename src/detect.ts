@@ -15,12 +15,12 @@ export interface FormatInfo {
 
 export const FORMATS: FormatInfo[] = [
   { kind: 'pdf', label: 'PDF（3D PDF 含む）', group: 'Office', exts: ['pdf'], ready: true },
-  { kind: 'sheet', label: 'Excel', group: 'Office', exts: ['xlsx', 'xls'], ready: true },
+  { kind: 'sheet', label: 'Excel', group: 'Office', exts: ['xlsx', 'xls', 'xlsm'], ready: false },
   { kind: 'csv', label: 'CSV', group: 'Office', exts: ['csv'], ready: true },
-  { kind: 'docx', label: 'Word', group: 'Office', exts: ['docx'], ready: true },
+  { kind: 'docx', label: 'Word', group: 'Office', exts: ['docx'], ready: false },
   { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite（閲覧のみ）', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
-  { kind: 'access', label: 'Access', group: 'Office', exts: ['mdb', 'accdb'], ready: false },
+  { kind: 'access', label: 'Access（閲覧のみ）', group: 'Office', exts: ['mdb', 'accdb'], ready: true },
   { kind: 'joblib', label: 'joblib / pickle（メタ情報のみ）', group: 'Office', exts: ['joblib', 'pkl', 'pickle'], ready: true },
   { kind: 'eml', label: 'EML', group: 'Mail', exts: ['eml'], ready: true },
   { kind: 'msg', label: 'Outlook MSG', group: 'Mail', exts: ['msg'], ready: true },
@@ -78,6 +78,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     const mk = mediaKind(ext, head); if (mk) return mk;
   }
   if (ext === 'joblib' || ext === 'pkl' || ext === 'pickle') return 'joblib';
+  if (ext === 'mdb' || ext === 'accdb' || ascii(head).startsWith('Standard Jet DB') || ascii(head).startsWith('Standard ACE DB')) return 'access';
   if (ascii(head).startsWith('SQLite format 3')) return 'sqlite';
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
   if (/^\s*ISO-10303-21/.test(text)) return 'step';
@@ -92,8 +93,9 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   if (ext === 'sldprt' || ext === 'sldasm' || ext === 'slddrw') return 'sw';
   if (ext === 'x_t' || ext === 'x_b' || ext === 'xmt_txt' || ext === 'xmt_bin' || isParasolid(head)) return 'parasolid';
   if (startsWith(head, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
-    // OLE2 複合ファイル（MSG / XLS など）
+    // OLE2 複合ファイル（MSG / XLS / MDB など）
     if (ext === 'xls') return 'sheet';
+    if (ext === 'mdb' || ext === 'accdb') return 'access';
     return 'msg';
   }
   if (/^AC10\d\d/.test(text)) return 'dwg';

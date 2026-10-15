@@ -115,17 +115,15 @@ test('ZIP（中の STEP を開く）', async ({ page, baseURL }) => {
   w.assertClean('sample.zip'); expect(w.problems).toEqual([]);
 });
 
-test('XLSX / CSV / DOCX', async ({ page, baseURL }) => {
+test('CSV と Excel/Word 準備中', async ({ page, baseURL }) => {
   const w = watch(page, baseURL!);
-  await openFixture(page, 'sample.xlsx');
-  await expect(page.getByTestId('sheet').getByText('ボルトM6')).toBeVisible();
-  await page.screenshot({ path: `${SHOTS}/09-xlsx.png` });
   await openFixture(page, 'sample.csv');
   await expect(page.getByTestId('sheet').getByText('ナットM6')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/10-csv-sjis.png` });
+  await openFixture(page, 'sample.xlsx');
+  await expect(page.getByText('Excel（XLSX / XLS）の表示は準備中です')).toBeVisible();
   await openFixture(page, 'sample.docx');
-  await expect(page.getByTestId('docx').getByText('作業手順書')).toBeVisible();
-  await page.screenshot({ path: `${SHOTS}/11-docx.png` });
+  await expect(page.getByText('Word（DOCX）の表示は準備中です')).toBeVisible();
   w.assertClean('sample.docx'); expect(w.problems).toEqual([]);
 });
 
@@ -380,17 +378,12 @@ test.describe('テキスト・ソースコード', () => {
   });
 });
 
-test('XLSX の書式（結合・塗り・太字・罫線・列幅・表示形式）', async ({ page }) => {
+test('Excel / Word / PPTX は準備中バッジ', async ({ page }) => {
   await page.goto('/');
-  await page.setInputFiles('input[type=file]', 'tests/fixtures/styled.xlsx');
-  const t = page.getByTestId('sheet');
-  await expect(t.getByText('見積書')).toBeVisible();
-  await expect(t.locator('td', { hasText: '見積書' })).toHaveAttribute('colspan', '4');
-  await expect(t.locator('td', { hasText: '項目' })).toHaveCSS('background-color', 'rgb(26, 95, 74)');
-  await expect(t.getByText('12,800')).toBeVisible();
-  await expect(t.getByText('2026/10/15')).toBeVisible();
-  await expect(t.getByText('¥21,200')).toBeVisible();
-  await page.screenshot({ path: 'shots/xlsx-styled.png' });
+  for (const label of ['Excel', 'Word', 'PowerPoint']) {
+    const li = page.locator('li', { has: page.locator('.fmt', { hasText: label }) });
+    await expect(li.getByText('準備中')).toBeVisible();
+  }
 });
 
 test('SQLite：テーブル一覧・行・読み取り専用 SQL', async ({ page }) => {
@@ -418,4 +411,15 @@ test('joblib：実行せずメタ情報だけ表示', async ({ page }) => {
   await page.goto('/');
   await page.setInputFiles('input[type=file]', 'tests/fixtures/sample-np.joblib');
   await expect(page.getByTestId('joblib')).toContainText(/numpy|joblib|NumpyArray/);
+});
+
+test('Access MDB / ACCDB', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.mdb');
+  await expect(page.getByTestId('access-tables')).toContainText('Table1');
+  await expect(page.getByTestId('access-grid')).toContainText('abcdefg');
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.accdb');
+  await expect(page.getByTestId('access-tables')).toContainText('Table1');
+  await expect(page.getByTestId('access-grid').locator('td').first()).toBeVisible();
 });

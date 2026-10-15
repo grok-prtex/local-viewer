@@ -36,8 +36,8 @@ function pagesHeaders(): Plugin {
 
 export default defineConfig({
   plugins: [react(), pagesHeaders()],
-  define: { __COMMIT__: JSON.stringify(commit) },
-  resolve: { alias: { buffer: 'buffer/' } },
+  define: { __COMMIT__: JSON.stringify(commit), 'process.env': {}, global: 'globalThis' },
+  resolve: { alias: { buffer: 'buffer/', process: 'process/browser' } },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000, assetsDir: 'static' },
   test: { include: ['src/**/*.test.ts'] },
 } as never);

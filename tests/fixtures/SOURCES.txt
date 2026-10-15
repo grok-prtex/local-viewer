@@ -8,3 +8,4 @@ text/*: written by hand for local-viewer tests, CC0.
 styled.xlsx: 見積書 sample generated with ExcelJS for tests, CC0.
 sample.sqlite: handwritten SQLite for tests, CC0.
 sample*.joblib: generated with joblib for tests, CC0.
+sample.mdb / sample.accdb: from andipaetzold/mdb-reader test fixtures (MIT).
