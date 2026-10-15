@@ -1,0 +1,19 @@
+From: =?UTF-8?B?5L2Q6Jek?= <sato@example.com>
+To: tanaka@example.com
+Subject: =?UTF-8?B?44GK6KaL56mN44KK44Gu5Lu2?=
+Date: Thu, 15 Oct 2026 10:00:00 +0900
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="XYZ"
+
+--XYZ
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: base64
+
+PHA+55Sw5Lit5qeYPC9wPjxwPuOBiuimi+epjeOCiuOCkua3u+S7mOOBhOOBn+OBl+OBvuOBmeOAgjwvcD48aW1nIHNyYz0naHR0cHM6Ly90cmFja2VyLmV4YW1wbGUuY29tL3AuZ2lmJz48c2NyaXB0PmFsZXJ0KDEpPC9zY3JpcHQ+
+--XYZ
+Content-Type: application/pdf; name="mitsumori.pdf"
+Content-Disposition: attachment; filename="mitsumori.pdf"
+Content-Transfer-Encoding: base64
+
+JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0OCA+PgpzdHJlYW0KQlQgL0YxIDI0IFRmIDQwIDEwMCBUZCAoTG9jYWwgVmlld2VyIFRlc3QpIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKNSAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzM5IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDA5CiUlRU9GCg==
+--XYZ--
