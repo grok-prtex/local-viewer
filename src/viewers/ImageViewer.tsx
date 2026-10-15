@@ -21,7 +21,7 @@ function probeNative(blob: Blob): Promise<Page> {
 }
 function heic(buf: ArrayBuffer): Promise<Page[]> {
   return new Promise((res, rej) => {
-    const w = new Worker('/heic-worker.js');
+    const w = new Worker('/heic-worker.js?v=' + __COMMIT__);
     w.onmessage = async (e) => { w.terminate(); if (!e.data.ok) return rej(new Error(e.data.error)); res(await Promise.all(e.data.images.map(imageDataToUrl))); };
     w.onerror = (e) => { w.terminate(); rej(new Error(e.message)); };
     w.postMessage(buf, [buf]);

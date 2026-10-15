@@ -91,7 +91,9 @@ default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-
    ```bash
    node scripts/verify-live.mjs https://view.a-ef.com
    ```
-   すべてのファイルをダウンロードして SHA-256 を比べ、`一致 N / 不一致 0` と表示されれば同じです。公開中の `/build-manifest.sha256` とも比べ、CSP ヘッダーの値も表示します（`_headers` はファイルとしては配信されないため、ヘッダーで確認します）。
+   すべてのファイルをダウンロードして SHA-256 を比べ、`一致 N / 不一致 0` と表示されれば同じです。公開中の `/build-manifest.sha256` とも比べ、CSP ヘッダーの値も表示します（`_headers` はファイルとしては配信されないため、ヘッダーで確認します）。CDN のキャッシュに古いファイルが残っていても正しく比べられるように、各リクエストには `?verify=<時刻>` を付けています。
+
+キャッシュ方針：ファイル名にハッシュが入る `/static/*` は 1 年 immutable、それ以外（HTML・Worker・WASM など名前が固定のファイル）は `no-cache` で毎回再検証します。Worker はさらに `?v=<コミット>` 付きで読み込むため、デプロイ直後でも古い Worker は使われません。
 4. リリースごとのハッシュ一覧は `releases/<コミット>.sha256` にもあります。GitHub Actions 用のワークフロー（`ci/github-actions-build.yml`、同じ手順でビルドしてハッシュを表示）を用意しています。`.github/workflows/` に置くと push のたびに動きます（現在のデプロイ用トークンには workflow 権限がないため、有効化は保守者が行います）。
 
 ## 開発

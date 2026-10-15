@@ -12,7 +12,7 @@ interface OcctNode { name: string; meshes: number[]; children: OcctNode[]; }
 
 function runOcct(kind: 'step' | 'iges', buffer: ArrayBuffer, onStage: (p: ProgressState) => void, job: { cancel?: () => void }): Promise<{ meshes: WorkerMesh[]; root: OcctNode | null }> {
   return new Promise((resolve, reject) => {
-    const w = new Worker('/occt-worker.js');
+    const w = new Worker('/occt-worker.js?v=' + __COMMIT__);
     job.cancel = () => { w.terminate(); reject(new Error('cancelled')); };
     w.onmessage = (e) => {
       if (e.data.type === 'progress') { onStage({ stage: '解析中', detail: 'OpenCascade で形状を計算しています' }); return; }
