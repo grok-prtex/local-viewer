@@ -1,5 +1,5 @@
 export type FormatKind =
-  | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'dxf' | 'zip'
+  | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
   | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'unknown';
 
 export interface FormatInfo {
@@ -11,7 +11,7 @@ export interface FormatInfo {
 }
 
 export const FORMATS: FormatInfo[] = [
-  { kind: 'pdf', label: 'PDF', group: 'Office', exts: ['pdf'], ready: true },
+  { kind: 'pdf', label: 'PDF（3D PDF 含む）', group: 'Office', exts: ['pdf'], ready: true },
   { kind: 'sheet', label: 'Excel', group: 'Office', exts: ['xlsx', 'xls'], ready: true },
   { kind: 'csv', label: 'CSV', group: 'Office', exts: ['csv'], ready: true },
   { kind: 'docx', label: 'Word', group: 'Office', exts: ['docx'], ready: true },
@@ -22,6 +22,7 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'step', label: 'STEP', group: 'CAD', exts: ['step', 'stp'], ready: true },
   { kind: 'iges', label: 'IGES', group: 'CAD', exts: ['iges', 'igs'], ready: true },
   { kind: 'stl', label: 'STL', group: 'CAD', exts: ['stl'], ready: true },
+  { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'zip', label: 'ZIP', group: 'Archive', exts: ['zip'], ready: true },
 ];
@@ -50,6 +51,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   const text = ascii(head);
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
   if (/^\s*ISO-10303-21/.test(text)) return 'step';
+  if (startsWith(head, [0x55, 0x33, 0x44, 0x00])) return 'u3d';
   if (startsWith(head, [0x50, 0x4b, 0x03, 0x04]) || startsWith(head, [0x50, 0x4b, 0x05, 0x06])) {
     // ZIP コンテナ（Office Open XML も ZIP）
     if (ext === 'xlsx' || ext === 'xlsm') return 'sheet';
@@ -71,6 +73,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     case 'step': case 'stp': return 'step';
     case 'iges': case 'igs': return 'iges';
     case 'dxf': return 'dxf';
+    case 'u3d': return 'u3d';
     case 'zip': return 'zip';
     case 'xlsx': case 'xls': case 'xlsm': return 'sheet';
     case 'csv': return 'csv';

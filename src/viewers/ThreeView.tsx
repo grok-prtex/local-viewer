@@ -40,8 +40,8 @@ export default function ThreeView({ object }: Props) {
       controls.target.copy(c); controls.update();
     };
     const setW = (w: boolean) => object.traverse((o) => {
-      const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
-      if (m && 'wireframe' in m) m.wireframe = w;
+      const mm = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[] | undefined;
+      for (const m of Array.isArray(mm) ? mm : mm ? [mm] : []) if ('wireframe' in m) m.wireframe = w;
     });
     const setBg = (d: boolean) => { scene.background = new THREE.Color(d ? 0x16181b : 0xf4f4f0); };
     setBg(false);

@@ -15,7 +15,7 @@ function runOcct(kind: 'step' | 'iges', buffer: ArrayBuffer): Promise<WorkerMesh
   });
 }
 
-export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 'step' | 'iges' }) {
+export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 'step' | 'iges' | 'u3d' }) {
   const [obj, setObj] = useState<THREE.Object3D | null>(null);
   const [err, setErr] = useState('');
   useEffect(() => {
@@ -23,12 +23,15 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
     (async () => {
       const buf = await file.arrayBuffer();
       const group = new THREE.Group();
-      if (kind === 'stl') {
+      if (kind === 'u3d') {
+        const { loadU3D } = await import('../u3d/toThree');
+        group.add((await loadU3D(buf)).group);
+      } else if (kind === 'stl') {
         const g = new STLLoader().parse(buf);
         if (!g.getAttribute('normal')) g.computeVertexNormals();
         group.add(new THREE.Mesh(g, material()));
       } else {
-        const meshes = await runOcct(kind, buf);
+        const meshes = await runOcct(kind as 'step' | 'iges', buf);
         if (!meshes.length) throw new Error('empty');
         for (const m of meshes) {
           const g = new THREE.BufferGeometry();

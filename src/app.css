@@ -91,3 +91,7 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .privacy-wrap { display: flex; flex-direction: column; gap: 2px; }
 .privacy-sub { margin: 0 0 0 16px; font-size: var(--fs-xs); color: var(--ink-3); }
 .head-actions { display: flex; gap: var(--sp-2); }
+
+.pdf3d-bar { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); padding-bottom: var(--sp-3); border-bottom: 1px solid var(--line); }
+.pdf3d-bar .tabs { margin: 0; }
+.pdf3d-bar .hint-inline { margin: 0; }

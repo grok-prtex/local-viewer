@@ -1,0 +1,7 @@
+なんでもローカルビューア
+
+src/u3d/bitstream.ts と src/u3d/parse.ts は、Intel Corporation の
+「Universal 3D (U3D) Sample Software」（Apache License 2.0）の
+CIFXBitStreamX / IFXHistogramDynamic / CIFXAuthorCLODDecoder を参考に、
+TypeScript で書き直したものです（https://github.com/ningfei/u3d ほか）。
+Copyright (c) 1999 - 2006 Intel Corporation. Licensed under the Apache License, Version 2.0.

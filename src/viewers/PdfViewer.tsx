@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import { lazy, Suspense } from 'react';
 import { Loading, ErrorBox } from '../ui';
+import { extract3D, type Pdf3D } from '../pdf3d';
+const Pdf3DView = lazy(() => import('./Pdf3DView'));
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -10,10 +13,15 @@ export default function PdfViewer({ file }: { file: File }) {
   const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [zoom, setZoom] = useState(1);
   const [err, setErr] = useState('');
+  const [model, setModel] = useState<Pdf3D | null>(null);
+  const [mode, setMode] = useState<'pages' | '3d'>('pages');
 
   useEffect(() => {
     let alive = true; let d: pdfjs.PDFDocumentProxy | null = null;
-    file.arrayBuffer().then((buf) => pdfjs.getDocument({
+    file.arrayBuffer().then((buf) => {
+      extract3D(new Uint8Array(buf.slice(0))).then((m) => { if (alive && m) { setModel(m); setMode(m.kind === 'U3D' ? '3d' : 'pages'); } }).catch(() => {});
+      return buf;
+    }).then((buf) => pdfjs.getDocument({
       data: new Uint8Array(buf),
       cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true,
       standardFontDataUrl: '/vendor/pdfjs/standard_fonts/',
@@ -27,7 +35,7 @@ export default function PdfViewer({ file }: { file: File }) {
   }, [file]);
 
   useEffect(() => {
-    if (!doc) return;
+    if (!doc || mode !== 'pages') return;
     const el = host.current!; el.innerHTML = '';
     let cancelled = false;
     const width = Math.min(el.clientWidth || 800, 1000);
@@ -62,12 +70,25 @@ export default function PdfViewer({ file }: { file: File }) {
       }
     })();
     return () => { cancelled = true; io.disconnect(); };
-  }, [doc, zoom]);
+  }, [doc, zoom, mode]);
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!doc) return <Loading>PDF を読み込んでいます</Loading>;
+  const switcher = model && (
+    <div className="pdf3d-bar">
+      <div className="tabs" role="tablist">
+        <button role="tab" aria-selected={mode === 'pages'} onClick={() => setMode('pages')}>PDF ページ</button>
+        <button role="tab" aria-selected={mode === '3d'} onClick={() => setMode('3d')} data-testid="tab-3d">3D モデル</button>
+      </div>
+      <span className="hint-inline">{model.kind === 'U3D' ? 'この PDF には 3D モデル（U3D 形式）が含まれています。' : 'この3DPDF（PRC形式）はまだ未対応です。ページは表示できます。'}</span>
+    </div>
+  );
+  if (model && mode === '3d') return (
+    <div>{switcher}<Suspense fallback={<Loading>表示の準備をしています</Loading>}><Pdf3DView model={model} /></Suspense></div>
+  );
   return (
     <div>
+      {switcher}
       <div className="toolbar">
         <span className="mono">{doc.numPages} ページ</span>
         <button onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}>縮小</button>

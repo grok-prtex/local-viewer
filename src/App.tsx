@@ -150,7 +150,7 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'pdf': return <PdfViewer file={file} />;
     case 'eml': return <EmlViewer file={file} onOpen={openChild} canOpen={canOpen} />;
     case 'msg': return <MsgViewer file={file} onOpen={openChild} canOpen={canOpen} />;
-    case 'stl': case 'step': case 'iges': return <CadViewer file={file} kind={kind} />;
+    case 'stl': case 'step': case 'iges': case 'u3d': return <CadViewer file={file} kind={kind} />;
     case 'dxf': return <DxfViewer file={file} />;
     case 'sheet': return <SheetViewer file={file} />;
     case 'csv': return <SheetViewer file={file} csv />;

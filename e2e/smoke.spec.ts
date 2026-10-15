@@ -156,3 +156,38 @@ test('タブ内の一時保存（再読み込みで復元・消去・別コン�
   await ctx.close();
   w.assertClean('sample.pdf'); expect(w.problems).toEqual([]);
 });
+
+test('3D PDF（U3D）: 3D 表示と PDF ページの切り替え', async ({ page, baseURL }) => {
+  const w = watch(page, baseURL!);
+  await openFixture(page, 'sample-3d-u3d.pdf');
+  await expect(page.getByText('3D モデル（U3D 形式）が含まれています')).toBeVisible();
+  await expect(page.locator('[data-testid="three-host"][data-rendered="true"]')).toBeVisible({ timeout: 30000 });
+  await expect(page.getByText(/外形 \d/)).toBeVisible();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${SHOTS}/14-pdf3d-u3d.png` });
+  await page.getByRole('tab', { name: 'PDF ページ' }).click();
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]')).toHaveCount(1, { timeout: 20000 });
+  await page.getByTestId('tab-3d').click();
+  await expect(page.locator('[data-testid="three-host"][data-rendered="true"]')).toBeVisible({ timeout: 30000 });
+  w.assertClean('sample-3d-u3d.pdf'); expect(w.problems).toEqual([]);
+});
+
+test('3D PDF（PRC）: 未対応メッセージとページ表示', async ({ page, baseURL }) => {
+  const w = watch(page, baseURL!);
+  await openFixture(page, 'sample-3d-prc.pdf');
+  await expect(page.getByText('この3DPDF（PRC形式）はまだ未対応です。ページは表示できます。')).toBeVisible();
+  await expect(page.locator('canvas.pdf-page[data-rendered="true"]')).toHaveCount(1, { timeout: 20000 });
+  await page.screenshot({ path: `${SHOTS}/15-pdf3d-prc.png` });
+  await page.getByTestId('tab-3d').click();
+  await expect(page.getByText('この3DPDF（PRC形式）はまだ未対応です', { exact: true })).toBeVisible();
+  w.assertClean('sample-3d-prc.pdf'); expect(w.problems).toEqual([]);
+});
+
+test('U3D 単体ファイル', async ({ page, baseURL }) => {
+  const w = watch(page, baseURL!);
+  await openFixture(page, 'sample.u3d');
+  await expect(page.locator('[data-testid="three-host"][data-rendered="true"]')).toBeVisible({ timeout: 30000 });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${SHOTS}/16-u3d.png` });
+  w.assertClean('sample.u3d'); expect(w.problems).toEqual([]);
+});
