@@ -259,3 +259,17 @@ test('progress UI and cancel for STEP', async ({ page }) => {
   await expect(page.getByTestId('progress').or(page.getByTestId('three-host'))).toBeVisible();
   await expect(page.getByTestId('three-host')).toBeVisible({ timeout: 60000 });
 });
+
+test('上方向切替と回転中心', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.stl');
+  await expect(page.getByTestId('three-host')).toBeVisible({ timeout: 60000 });
+  await page.getByRole('button', { name: /上方向/ }).click();
+  await expect(page.getByRole('button', { name: '上方向 Y' })).toBeVisible();
+  const b = (await page.getByTestId('three-host').boundingBox())!;
+  await page.mouse.move(b.x + 200, b.y + 200); await page.mouse.down(); await page.mouse.move(b.x + 300, b.y + 220); await page.mouse.up();
+  await page.getByTestId('pivot').click();
+  await expect(page.getByTestId('pivot')).toHaveText('回転中心：原点');
+  expect(errors).toEqual([]);
+});

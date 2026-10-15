@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; }
 
-type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (dark: boolean) => void; setGrid: (g: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
+type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (dark: boolean) => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
 
 function label(text: string, color: string) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -34,6 +34,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
   const [up, setUp] = useState<'z' | 'y'>(up0);
   const [colors, setColors] = useState(false);
   const [picked, setPicked] = useState('');
+  const [pivotNote, setPivotNote] = useState('モデル中心');
   const [wire, setWire] = useState(false);
   const [dark, setDark] = useState(false);
   const [size, setSize] = useState<THREE.Vector3 | null>(null);
@@ -51,20 +52,31 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     const dir = new THREE.DirectionalLight(0xffffff, 1.6);
     camera.add(dir); dir.position.set(1, 1, 2); scene.add(camera);
     scene.add(object);
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.screenSpacePanning = true;
+    // OrbitControls は生成時の camera.up で回転軸を固定するため、上方向を変えたら作り直します
+    let controls!: OrbitControls;
+    const makeControls = () => {
+      const t = controls ? controls.target.clone() : null;
+      controls?.dispose();
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.screenSpacePanning = true;
+      if (t) controls.target.copy(t);
+    };
+    makeControls();
+    let pivotOrigin = false;
 
     const box = new THREE.Box3().setFromObject(object);
     const sz = box.getSize(new THREE.Vector3());
     setSize(sz);
     const fit = () => {
-      const c = box.getCenter(new THREE.Vector3());
+      const c = pivotOrigin ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
+      const m = box.getCenter(new THREE.Vector3());
       const r = Math.max(sz.length() / 2, 1e-6);
       const d = r / Math.sin((camera.fov * Math.PI) / 360);
       camera.up.set(0, upAxis === 'z' ? 0 : 1, upAxis === 'z' ? 1 : 0);
+      makeControls();
       const v = upAxis === 'z' ? new THREE.Vector3(1, -1.2, 0.9) : new THREE.Vector3(1, 0.9, 1.2);
-      camera.position.copy(c).add(v.normalize().multiplyScalar(d * 1.05));
+      camera.position.copy(m).add(v.normalize().multiplyScalar(d * 1.05 + c.distanceTo(m)));
       camera.near = d / 1000; camera.far = d * 100; camera.updateProjectionMatrix();
       controls.target.copy(c); controls.update();
     };
@@ -108,10 +120,19 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     };
     renderer.domElement.addEventListener('pointerdown', onDown);
     renderer.domElement.addEventListener('pointerup', onUp);
+    // ダブルクリックした面の点を回転中心にします
+    const onDbl = (e: MouseEvent) => {
+      const r = renderer.domElement.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = ray.intersectObjects(meshes, false).find((h) => { let o: THREE.Object3D | null = h.object; while (o) { if (!o.visible) return false; o = o.parent; } return true; });
+      if (hit) { controls.target.copy(hit.point); controls.update(); setPivotNote('ダブルクリックした点'); }
+    };
+    renderer.domElement.addEventListener('dblclick', onDbl);
     api.current = {
       fit, setWire: (w) => { wireNow = w; setW(w); }, setBg,
       setGrid: (g) => { helpers.visible = g; },
       setUp: (u) => { upAxis = u; buildHelpers(); fit(); },
+      setPivot: (o) => { pivotOrigin = o; fit(); setPivotNote(o ? '原点' : 'モデル中心'); },
       setColors,
     };
     const gizmo = makeGizmo();
@@ -136,7 +157,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     el.dataset.rendered = 'true';
     return () => {
       cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
-      renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp);
+      renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp); renderer.domElement.removeEventListener('dblclick', onDbl);
       distinct.forEach((m) => m.dispose());
       object.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
       renderer.dispose(); el.removeChild(renderer.domElement);
@@ -151,6 +172,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
         <button aria-pressed={dark} onClick={() => { setDark(!dark); api.current?.setBg(!dark); }}>背景 {dark ? '黒' : '白'}</button>
         <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>原点・グリッド</button>
         <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title="モデルの上方向を切り替えます">上方向 {up.toUpperCase()}</button>
+        <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">回転中心：{pivotNote}</button>
         <button aria-pressed={colors} onClick={() => { setColors(!colors); api.current?.setColors(!colors); }}>部品ごとに色分け</button>
         {size && <span className="mono dims">外形 {fmt(size.x)} × {fmt(size.y)} × {fmt(size.z)}</span>}
       </div>
@@ -159,7 +181,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
         {side}
       </div>
       {picked && <p className="picked" data-testid="picked">選択中：<b>{picked}</b></p>}
-      <p className="hint">クリックで部品を選択、ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）で拡大縮小します。</p>
+      <p className="hint">クリックで部品を選択、ダブルクリックでその点を回転中心に、ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）で拡大縮小します。</p>
     </div>
   );
 }
