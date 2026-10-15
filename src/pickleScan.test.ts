@@ -18,3 +18,10 @@ describe('pickleScan', () => {
     expect(scanPickle(bytes, compression).strings).toContain('見本');
   });
 });
+  it('scans numpy joblib globals as strings', async () => {
+    const raw = new Uint8Array(readFileSync('tests/fixtures/sample-np.joblib'));
+    const { bytes, compression } = await maybeInflate(raw);
+    const s = scanPickle(bytes, compression);
+    expect(s.hasUnsafeOps).toBe(true);
+    expect([...s.strings, ...s.globals].join(' ')).toMatch(/numpy|joblib/);
+  });

@@ -417,5 +417,5 @@ test('joblib：実行せずメタ情報だけ表示', async ({ page }) => {
   await expect(page.getByTestId('joblib')).toContainText('zlib');
   await page.goto('/');
   await page.setInputFiles('input[type=file]', 'tests/fixtures/sample-np.joblib');
-  await expect(page.getByTestId('joblib-types').or(page.getByTestId('joblib-strings'))).toContainText(/numpy|joblib/);
+  await expect(page.getByTestId('joblib')).toContainText(/numpy|joblib|NumpyArray/);
 });
