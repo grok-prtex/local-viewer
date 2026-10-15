@@ -1,9 +1,8 @@
-import { isParasolid } from './cadinfo';
 import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'text' | 'sqlite' | 'access' | 'joblib' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'sw' | 'text' | 'sqlite' | 'access' | 'joblib' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
@@ -29,7 +28,6 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'iges', label: 'IGES', group: 'CAD', exts: ['iges', 'igs'], ready: true },
   { kind: 'stl', label: 'STL', group: 'CAD', exts: ['stl'], ready: true },
   { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
-  { kind: 'parasolid', label: 'Parasolid（情報のみ）', group: 'CAD', exts: ['x_t', 'x_b'], ready: true },
   { kind: 'sw', label: 'SolidWorks（プレビュー画像）', group: 'CAD', exts: ['sldprt', 'sldasm'], ready: true },
   { kind: 'text', label: 'テキスト・ログ・設定', group: 'Text', exts: ['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env'], ready: true },
   { kind: 'text', label: 'Markdown（整形表示）', group: 'Text', exts: ['md'], ready: true },
@@ -91,7 +89,8 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     return 'zip';
   }
   if (ext === 'sldprt' || ext === 'sldasm' || ext === 'slddrw') return 'sw';
-  if (ext === 'x_t' || ext === 'x_b' || ext === 'xmt_txt' || ext === 'xmt_bin' || isParasolid(head)) return 'parasolid';
+  // Parasolid（x_t / x_b）はブラウザだけでは形状表示できないため非対応（2026-10-16 削除）
+  if (ext === 'x_t' || ext === 'x_b' || ext === 'xmt_txt' || ext === 'xmt_bin') return 'unknown';
   if (startsWith(head, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
     // OLE2 複合ファイル（MSG / XLS / MDB など）
     if (ext === 'xls') return 'sheet';

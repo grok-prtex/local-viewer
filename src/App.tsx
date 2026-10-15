@@ -172,7 +172,7 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'sqlite': return <SqlViewer file={file} />;
     case 'joblib': return <JoblibViewer file={file} />;
     case 'access': return <AccessViewer file={file} />;
-    case 'parasolid': case 'sw': return <CadInfoViewer file={file} kind={kind} />;
+    case 'sw': return <CadInfoViewer file={file} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
     case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
     case 'dwg': return <ErrorBox>DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。</ErrorBox>;

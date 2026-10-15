@@ -243,11 +243,11 @@ test('ZIP 内の画像と動画を開く', async ({ page, baseURL }) => {
   w.assertClean('media.zip'); expect(w.problems).toEqual([]);
 });
 
-test('Parasolid header info', async ({ page }) => {
+test('Parasolid is unsupported', async ({ page }) => {
   await page.goto('/');
   await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.x_t');
-  await expect(page.getByTestId('ps-info')).toContainText('local-viewer test');
-  await expect(page.getByText('形状表示は準備中です')).toBeVisible();
+  await expect(page.getByText(/まだ対応していません|対応形式/)).toBeVisible();
+  await expect(page.getByTestId('ps-info')).toHaveCount(0);
 });
 
 test('progress UI and cancel for STEP', async ({ page }) => {

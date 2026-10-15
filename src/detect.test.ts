@@ -61,10 +61,10 @@ describe('画像・動画の判定', () => {
 });
 
 describe('CAD info formats', () => {
-  it('detects Parasolid and SolidWorks', () => {
+  it('Parasolid は未対応、SolidWorks は検出する', () => {
     const h = new TextEncoder().encode('**ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz**************************\n**PARASOLID');
-    expect(detectFormat('a.x_b', h)).toBe('parasolid');
-    expect(detectFormat('noext', h)).toBe('parasolid');
+    expect(detectFormat('a.x_b', h)).toBe('unknown');
+    expect(detectFormat('a.x_t', h)).toBe('unknown');
     expect(detectFormat('a.SLDPRT', new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]))).toBe('sw');
     expect(detectFormat('a.sldasm', new Uint8Array(8))).toBe('sw');
   });
