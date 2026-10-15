@@ -1,0 +1,2 @@
+すべてこのプロジェクトで生成（Pillow / pillow-heif / ffmpeg testsrc・sine / ag-psd / @jsquash/jxl）。
+sample.cr2 は本物の RAW ではなく、TIFF 風ヘッダーに JPEG を2つ埋め込んだ合成ファイル（埋め込みプレビュー抽出の試験用）。

@@ -7,4 +7,6 @@ for (const f of ['occt-import-js.js', 'occt-import-js.wasm', 'license.occt.txt',
   cpSync(nm + 'occt-import-js/dist/' + f, pub + 'vendor/occt/' + f);
 for (const d of ['cmaps', 'standard_fonts', 'wasm', 'iccs'])
   cpSync(nm + 'pdfjs-dist/' + d, pub + 'vendor/pdfjs/' + d, { recursive: true });
+mkdirSync(pub + 'vendor/libheif', { recursive: true });
+for (const f of ['libheif.js', 'libheif.wasm', 'LICENSE']) cpSync(nm + 'libheif-js/libheif-wasm/' + f, pub + 'vendor/libheif/' + f);
 console.log('assets copied');

@@ -12,10 +12,12 @@ const DxfViewer = lazy(() => import('./viewers/DxfViewer'));
 const SheetViewer = lazy(() => import('./viewers/SheetViewer'));
 const DocxViewer = lazy(() => import('./viewers/DocxViewer'));
 const ZipViewer = lazy(() => import('./viewers/ZipViewer'));
+const ImageViewer = lazy(() => import('./viewers/ImageViewer'));
+const MediaViewer = lazy(() => import('./viewers/MediaViewer'));
 
 interface Opened { file: File; kind: FormatKind; }
-const GROUPS = ['Office', 'Mail', 'CAD', 'Archive'] as const;
-const isReady = (k: FormatKind) => !!formatInfo(k)?.ready;
+const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive'] as const;
+const isReady = (k: FormatKind) => FORMATS.some((f) => f.kind === k && f.ready);
 
 export default function App() {
   const [stack, setStack] = useState<Opened[]>([]);
@@ -96,7 +98,7 @@ export default function App() {
                     <div className="label mono">{g.toUpperCase()}</div>
                     <ul>
                       {FORMATS.filter((f) => f.group === g).map((f) => (
-                        <li key={f.kind} className={f.ready ? '' : 'pending'}>
+                        <li key={f.label} className={f.ready ? '' : 'pending'}>
                           <span className="fmt">{f.label}</span>
                           <span className="mono exts">{f.exts.map((x) => '.' + x).join(' ')}</span>
                           {!f.ready && <span className="badge">準備中</span>}
@@ -120,7 +122,7 @@ export default function App() {
                 {stack.length > 1 && <button className="ghost" onClick={() => setStack((s) => s.slice(0, -1))}>戻る</button>}
                 <div>
                   <div className="fname" data-testid="file-name">{current.file.name}</div>
-                  <div className="mono meta">{formatInfo(current.kind)?.label ?? (extOf(current.file.name).toUpperCase() || '不明な形式')} · {size(current.file.size)}</div>
+                  <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : formatInfo(current.kind)?.label) ?? (extOf(current.file.name).toUpperCase() || '不明な形式')} · {size(current.file.size)}</div>
                 </div>
               </div>
               <div className="head-actions">
@@ -155,6 +157,8 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'sheet': return <SheetViewer file={file} />;
     case 'csv': return <SheetViewer file={file} csv />;
     case 'docx': return <DocxViewer file={file} />;
+    case 'image': return <ImageViewer file={file} />;
+    case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
     case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
     case 'dwg': return <ErrorBox>DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。</ErrorBox>;

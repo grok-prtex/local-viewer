@@ -42,6 +42,20 @@ describe('detectFormat', () => {
   });
   it('DWG と未対応', () => {
     expect(detectFormat('a.dwg', enc('AC1032xxxx'))).toBe('dwg');
-    expect(detectFormat('photo.heic', new Uint8Array([1, 2, 3]))).toBe('unknown');
+    expect(detectFormat('data.xyz', new Uint8Array([1, 2, 3]))).toBe('unknown');
+  });
+});
+
+describe('画像・動画の判定', () => {
+  const m = (n: string) => fx('media/' + n);
+  it('画像', () => {
+    for (const n of ['sample.png', 'sample.jpg', 'sample.gif', 'sample.webp', 'sample.heic', 'sample.tif', 'sample.psd', 'sample.cr2', 'sample.jxl', 'sample.svg', 'sample.tga', 'sample.ico', 'sample.bmp'])
+      expect(detectFormat(n, m(n)), n).toBe('image');
+    expect(detectFormat('noext', m('sample.heic'))).toBe('image');
+  });
+  it('動画・音声', () => {
+    for (const n of ['sample.mp4', 'sample.webm', 'sample.avi', 'sample.flv']) expect(detectFormat(n, m(n)), n).toBe('video');
+    for (const n of ['sample.wav', 'sample.mp3']) expect(detectFormat(n, m(n)), n).toBe('audio');
+    expect(detectFormat('clip.bin', m('sample.mp4'))).toBe('video');
   });
 });

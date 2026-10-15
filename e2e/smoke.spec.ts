@@ -131,7 +131,7 @@ test('XLSX / CSV / DOCX', async ({ page, baseURL }) => {
 
 test('未対応形式', async ({ page }) => {
   await page.goto('/');
-  await page.getByTestId('file-input').setInputFiles({ name: 'photo.heic', mimeType: 'image/heic', buffer: Buffer.from([1, 2, 3, 4]) });
+  await page.getByTestId('file-input').setInputFiles({ name: 'data.xyz', mimeType: 'application/octet-stream', buffer: Buffer.from([1, 2, 3, 4]) });
   await expect(page.getByText('この形式のファイルには、まだ対応していません。')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/12-unsupported.png` });
 });
@@ -190,4 +190,57 @@ test('U3D 単体ファイル', async ({ page, baseURL }) => {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${SHOTS}/16-u3d.png` });
   w.assertClean('sample.u3d'); expect(w.problems).toEqual([]);
+});
+
+const IMAGES: [string, string][] = [
+  ['media/sample.png', '320 × 200'], ['media/sample.jpg', '320 × 200'], ['media/sample.gif', '320 × 200'], ['media/sample.webp', '320 × 200'],
+  ['media/sample.bmp', '320 × 200'], ['media/sample.ico', '64 × 64'], ['media/sample.svg', '320 × 200'], ['media/sample.heic', '320 × 200'],
+  ['media/sample.tif', '320 × 200'], ['media/sample.psd', '320 × 200'], ['media/sample.cr2', '640 × 400'], ['media/sample.tga', '320 × 200'],
+  ['media/sample.jxl', '320 × 200'],
+];
+for (const [f, dims] of IMAGES) {
+  test(`画像 ${f}`, async ({ page, baseURL }) => {
+    const w = watch(page, baseURL!);
+    await page.goto('/');
+    await page.getByTestId('file-input').setInputFiles(path.join(FX, f));
+    await expect(page.getByTestId('img-dims')).toContainText(dims, { timeout: 30000 });
+    await expect(page.getByTestId('img')).toBeVisible();
+    if (f.endsWith('.tif')) await expect(page.locator('.toolbar select option')).toHaveCount(2);
+    if (['media/sample.heic', 'media/sample.tif', 'media/sample.psd', 'media/sample.cr2', 'media/sample.png'].includes(f))
+      await page.screenshot({ path: `${SHOTS}/20-image-${path.extname(f).slice(1)}.png` });
+    w.assertClean(f); expect(w.problems).toEqual([]);
+  });
+}
+
+test('動画・音声（再生できる形式）', async ({ page, baseURL }) => {
+  const w = watch(page, baseURL!);
+  for (const [f, sel] of [['media/sample.mp4', 'video'], ['media/sample.webm', 'video'], ['media/sample.wav', 'audio'], ['media/sample.mp3', 'audio']]) {
+    await page.goto('/');
+    await page.getByTestId('file-input').setInputFiles(path.join(FX, f));
+    await expect.poll(() => page.getByTestId(sel).evaluate((m: HTMLMediaElement) => m.readyState), { timeout: 15000 }).toBeGreaterThan(0);
+    if (f.endsWith('mp4')) await page.screenshot({ path: `${SHOTS}/21-video-mp4.png` });
+  }
+  w.assertClean('media/sample.mp4'); expect(w.problems).toEqual([]);
+});
+
+test('動画（再生できない形式はコンテナ情報を表示）', async ({ page }) => {
+  await page.goto('/');
+  await page.getByTestId('file-input').setInputFiles(path.join(FX, 'media/sample.avi'));
+  await expect(page.getByTestId('media-info')).toContainText('AVI', { timeout: 15000 });
+  await expect(page.getByTestId('media-info')).toContainText('XVID');
+  await page.screenshot({ path: `${SHOTS}/22-video-avi.png` });
+  await page.goto('/');
+  await page.getByTestId('file-input').setInputFiles(path.join(FX, 'media/sample.flv'));
+  await expect(page.getByTestId('media-info')).toContainText('FLV', { timeout: 15000 });
+});
+
+test('ZIP 内の画像と動画を開く', async ({ page, baseURL }) => {
+  const w = watch(page, baseURL!);
+  await openFixture(page, 'media.zip');
+  await page.locator('li', { hasText: '写真.jpg' }).getByRole('button', { name: '開く', exact: true }).click();
+  await expect(page.getByTestId('img-dims')).toContainText('320 × 200');
+  await page.getByRole('button', { name: '戻る' }).click();
+  await page.locator('li', { hasText: 'clip.mp4' }).getByRole('button', { name: '開く', exact: true }).click();
+  await expect.poll(() => page.getByTestId('video').evaluate((m: HTMLMediaElement) => m.readyState), { timeout: 15000 }).toBeGreaterThan(0);
+  w.assertClean('media.zip'); expect(w.problems).toEqual([]);
 });

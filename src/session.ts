@@ -6,7 +6,7 @@
  */
 const DB = 'local-viewer-session', STORE = 'sessions', SID_KEY = 'lv-session-id';
 const STALE_MS = 45_000;
-export interface SavedFile { name: string; type: string; bytes: ArrayBuffer; }
+export interface SavedFile { name: string; type: string; blob?: Blob; bytes?: ArrayBuffer; }
 
 export function sessionId(): string {
   let id = sessionStorage.getItem(SID_KEY);
@@ -33,7 +33,8 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
 export async function saveSession(files: File[]) {
   const sid = sessionId();
   if (!files.length) { await tx('readwrite', (s) => { s.delete(sid); }); return; }
-  const saved: SavedFile[] = await Promise.all(files.map(async (f) => ({ name: f.name, type: f.type, bytes: await f.arrayBuffer() })));
+  // File（Blob）のまま保存します。大きな動画でもメモリに全体を読み込みません
+  const saved: SavedFile[] = files.map((f) => ({ name: f.name, type: f.type, blob: f }));
   await tx('readwrite', (s) => { s.put({ sid, ts: Date.now(), files: saved }); });
 }
 
@@ -43,7 +44,7 @@ export async function loadSession(): Promise<File[]> {
   const now = Date.now();
   await tx('readwrite', (s) => { for (const e of all ?? []) if (e.sid !== sid && now - e.ts > STALE_MS) s.delete(e.sid); });
   const mine = all?.find((e) => e.sid === sid);
-  return mine ? mine.files.map((f) => new File([f.bytes], f.name, { type: f.type })) : [];
+  return mine ? mine.files.map((f) => new File([(f.blob ?? f.bytes)!], f.name, { type: f.type })) : [];
 }
 
 /** 開いている間は生存確認の時刻を更新します */

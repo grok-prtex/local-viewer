@@ -18,6 +18,15 @@
 | CAD | STEP / STP / IGES / IGS | 対応 | occt-import-js（OpenCascade の WebAssembly 版、Web Worker 内で実行）＋ Three.js |
 | CAD | STL | 対応 | Three.js STLLoader |
 | CAD | DWG | 準備中 | — |
+| CAD | 3D PDF（U3D） | 対応（PDF 内の U3D を自前デコーダーで表示、ページ表示と切替） | 自前（Intel U3D Sample Software, Apache-2.0 を参考に移植。NOTICE 参照） |
+| CAD | 3D PDF（PRC） | 検出のみ（「この3DPDF（PRC形式）はまだ未対応です」と表示、ページは表示） | — |
+| CAD | U3D | 対応（ベースメッシュのみ。プログレッシブ部分は未対応） | 同上 |
+| Image | PNG / JPEG / GIF / WebP / AVIF / BMP / ICO / SVG | 対応（ブラウザ標準。SVG は img 要素で表示しスクリプト無効） | — |
+| Image | HEIC / HEIF | 対応 | libheif-js（LGPL-3.0、未改変の WASM を /vendor/libheif から別ファイルとして配信） |
+| Image | TIFF（複数ページ）/ PSD（合成画像）/ TGA / JPEG XL | 対応 | UTIF.js（MIT）/ ag-psd（MIT）/ Three.js TGALoader / @jsquash/jxl（Apache-2.0） |
+| Image | カメラ RAW | 埋め込みプレビュー JPEG を表示（現像はしない） | 自前 |
+| Media | MP4 / MOV / WebM / MKV / MP3 / WAV / M4A / OGG / FLAC | ブラウザが再生できる範囲で対応（blob URL） | — |
+| Media | AVI / WMV / FLV など | 準備中（コンテナとコーデックを表示）。ffmpeg.wasm は約 30MB で見送り | — |
 | Archive | ZIP | 対応（一覧、保存、中の対応ファイルをそのまま表示） | JSZip |
 
 3D ビューアは、回転・移動・拡大縮小・全体表示・ワイヤーフレーム切替・背景の白黒切替と、外形寸法（バウンディングボックス）の表示ができます。
@@ -29,6 +38,7 @@
 - 解析ライブラリ、WebAssembly、PDF の CMap・標準フォント、IBM Plex のフォントは、すべてこのサイト自身から配信しています。外部 CDN・解析ツール・広告は使っていません。
 - `public/_headers` で厳しい Content-Security-Policy を設定し、ブラウザ側で通信先を強制的に制限しています。
   - `connect-src 'self'`、`default-src 'none'`、`form-action 'none'`、`frame-ancestors 'none'` など。
+  - 動画・音声の再生のため `media-src 'self' blob:` を追加しています（ローカルの blob URL のみ）。
   - `/occt-worker.js` だけは、OpenCascade（Emscripten）が内部で `new Function` を使うため `'unsafe-eval'` を許可しています。この Worker も `connect-src 'self'` で、外部への通信はできません。
 - a-ef.com ゾーンの Cloudflare Web Analytics が HTML に計測スクリプトを自動挿入しないよう、`Cache-Control: no-transform` を付けています（CSP でも遮断されます）。
 - メール本文の HTML は、スクリプトを無効にした sandbox の iframe に表示します。外部画像（開封確認の追跡画像など）は CSP で読み込みを止めます。
