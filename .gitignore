@@ -4,3 +4,8 @@ public/vendor
 test-results
 playwright-report
 *.tsbuildinfo
+# 非公開のサンプル（絶対にコミットしない）
+private-samples/
+**/private-samples/
+e2e/private/
+shots-private/

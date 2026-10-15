@@ -103,3 +103,5 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .toolbar select { font: inherit; font-size: var(--fs-sm); padding: 6px 10px; border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--surface); }
 .media { width: 100%; max-height: 72vh; background: #000; border-radius: var(--r-md); }
 .media-audio { width: 100%; }
+.foot a { color: var(--ink-2); text-underline-offset: 3px; }
+.foot a:hover { color: var(--signal-ink); }

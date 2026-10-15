@@ -1,0 +1,20 @@
+name: build-and-hash
+on:
+  push: { branches: [main] }
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20.19.2' }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: dist のハッシュ一覧（公開サイトと比較するための値）
+        run: cat dist/build-manifest.sha256 && sha256sum dist/build-manifest.sha256
+      - name: 公開サイトと比較（デプロイ済みの場合のみ一致します）
+        continue-on-error: true
+        run: node scripts/verify-live.mjs https://view.a-ef.com

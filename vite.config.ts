@@ -1,6 +1,16 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+
+// 画面に表示するコミット（未コミットの変更があれば -dirty を付けます）
+const commit = (() => {
+  try {
+    const h = execSync('git rev-parse --short=12 HEAD').toString().trim();
+    const dirty = execSync('git status --porcelain --untracked-files=no').toString().trim();
+    return dirty ? h + '-dirty' : h;
+  } catch { return 'unknown'; }
+})();
 
 // public/_headers（Cloudflare Pages 形式）の CSP をローカル preview でも同じように適用します
 function pagesHeaders(): Plugin {
@@ -26,6 +36,7 @@ function pagesHeaders(): Plugin {
 
 export default defineConfig({
   plugins: [react(), pagesHeaders()],
+  define: { __COMMIT__: JSON.stringify(commit) },
   resolve: { alias: { buffer: 'buffer/' } },
   build: { target: 'es2022', chunkSizeWarningLimit: 2000, assetsDir: 'static' },
   test: { include: ['src/**/*.test.ts'] },

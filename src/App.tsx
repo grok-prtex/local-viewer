@@ -141,6 +141,11 @@ export default function App() {
       <footer className="foot">
         <span>a-ef · ユーティリティを、すぐに。</span>
         <span>表示のみの道具です。編集・変換・保存の機能はありません。</span>
+        <span className="source">
+          <a href="https://github.com/grok-prtex/local-viewer" target="_blank" rel="noopener noreferrer" data-testid="source-link">ソースコード（GitHub）</a>
+          {' · '}
+          <a className="mono" href={`https://github.com/grok-prtex/local-viewer/commit/${__COMMIT__.replace('-dirty', '')}`} target="_blank" rel="noopener noreferrer" data-testid="commit">{__COMMIT__}</a>
+        </span>
       </footer>
     </div>
   );
