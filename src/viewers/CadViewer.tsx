@@ -83,6 +83,10 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
           const tn: TreeNode = { name: n.name || '（名前なし）', obj: gr, children: [] };
           for (const mi of n.meshes) { const m = built[mi]; if (!m) continue; m.name = r.meshes[mi].name; gr.add(m); if (n.children.length || n.meshes.length > 1) tn.children.push({ name: m.name || `形状 ${mi + 1}`, obj: m, children: [] }); }
           if (depth < 40) for (const c of n.children) { const [co, ct] = toGroup(c, depth + 1); gr.add(co); tn.children.push(ct); }
+          // 同じ部品が複数あるときは SolidWorks と同じく <1> <2> … を付けます
+          const cnt = new Map<string, number>(); for (const c of tn.children) cnt.set(c.name, (cnt.get(c.name) ?? 0) + 1);
+          const seen = new Map<string, number>();
+          for (const c of tn.children) if ((cnt.get(c.name) ?? 0) > 1) { const k = (seen.get(c.name) ?? 0) + 1; seen.set(c.name, k); c.name = `${c.name} <${k}>`; c.obj.name = c.name; }
           return [gr, tn];
         };
         if (r.root) { const [o, t0] = toGroup(r.root, 0); group.add(o); let t = t0; while (t.name === '（名前なし）' && t.children.length === 1 && t.children[0].children.length) t = t.children[0]; root = t; } else built.forEach((m) => group.add(m));
