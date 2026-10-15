@@ -95,13 +95,23 @@ export default function DxfViewer({ file }: { file: File }) {
     const lines = new Map<string, THREE.Group>();
     const mats = new Map<string, THREE.LineBasicMaterial>();
     const whites: THREE.LineBasicMaterial[] = [];
+    // 同じレイヤー・同じ色の線を 1 つの LineSegments にまとめます（描画呼び出しを数十万から数百に減らします）
+    const buckets = new Map<string, { layer: string; color: number; n: number; segs: Seg[] }>();
     for (const s of data.segs) {
       if (s.pts.length < 2) continue;
-      let g = lines.get(s.layer); if (!g) { g = new THREE.Group(); lines.set(s.layer, g); scene.add(g); }
-      const key = String(s.color);
+      const k = s.layer + '\u0000' + s.color;
+      let b = buckets.get(k); if (!b) { b = { layer: s.layer, color: s.color, n: 0, segs: [] }; buckets.set(k, b); }
+      b.segs.push(s); b.n += s.pts.length - 1;
+    }
+    for (const b of buckets.values()) {
+      let g = lines.get(b.layer); if (!g) { g = new THREE.Group(); lines.set(b.layer, g); scene.add(g); }
+      const key = String(b.color);
       let m = mats.get(key);
-      if (!m) { m = new THREE.LineBasicMaterial({ color: s.color }); mats.set(key, m); if (s.color === 0xffffff || s.color === 0) whites.push(m); }
-      g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(s.pts.map((p) => new THREE.Vector3(p.x, p.y, 0))), m));
+      if (!m) { m = new THREE.LineBasicMaterial({ color: b.color }); mats.set(key, m); if (b.color === 0xffffff || b.color === 0) whites.push(m); }
+      const arr = new Float32Array(b.n * 6); let o = 0;
+      for (const s of b.segs) for (let i = 1; i < s.pts.length; i++) { const p = s.pts[i - 1], q = s.pts[i]; arr[o] = p.x; arr[o + 1] = p.y; arr[o + 3] = q.x; arr[o + 4] = q.y; o += 6; }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      g.add(new THREE.LineSegments(geo, m));
     }
     const box = new THREE.Box3().setFromObject(scene);
     const controls = new OrbitControls(cam, renderer.domElement);

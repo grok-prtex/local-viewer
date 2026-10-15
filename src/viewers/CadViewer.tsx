@@ -10,9 +10,11 @@ interface FaceColor { first: number; last: number; color: number[] | null; }
 interface WorkerMesh { name: string; position: Float32Array; normal: Float32Array | null; index: Uint32Array; color: number[] | null; faceColors: FaceColor[] | null; }
 interface OcctNode { name: string; meshes: number[]; children: OcctNode[]; }
 
-function runOcct(kind: 'step' | 'iges', buffer: ArrayBuffer, onStage: (p: ProgressState) => void, job: { cancel?: () => void }): Promise<{ meshes: WorkerMesh[]; root: OcctNode | null }> {
+/** ファイルを読んでいる間に WASM の準備を始めておきます */
+function warmOcct(): Worker { const w = new Worker('/occt-worker.js?v=' + __COMMIT__); w.postMessage({ warm: true }); return w; }
+
+function runOcct(w: Worker, kind: 'step' | 'iges', buffer: ArrayBuffer, onStage: (p: ProgressState) => void, job: { cancel?: () => void }): Promise<{ meshes: WorkerMesh[]; root: OcctNode | null }> {
   return new Promise((resolve, reject) => {
-    const w = new Worker('/occt-worker.js?v=' + __COMMIT__);
     job.cancel = () => { w.terminate(); reject(new Error('cancelled')); };
     w.onmessage = (e) => {
       if (e.data.type === 'progress') { onStage({ stage: '解析中', detail: 'OpenCascade で形状を計算しています' }); return; }
@@ -55,13 +57,15 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
     let alive = true; const j = { cancelled: false } as { cancel?: () => void; cancelled: boolean }; job.current = j;
     const set = (p: ProgressState) => { if (alive) setProg(p); };
     (async () => {
+      const pre = kind === 'step' || kind === 'iges' ? warmOcct() : null;
+      j.cancel = () => pre?.terminate();
       const buf = await readWithProgress(file, (pct) => set({ stage: '読み込み中', pct }), j);
       const group = new THREE.Group(); group.name = file.name;
       let root: TreeNode | null = null;
       if (kind === 'u3d') {
         set({ stage: '解析中' });
         const { loadU3D } = await import('../u3d/toThree');
-        group.add((await loadU3D(buf)).group);
+        group.add((await loadU3D(buf, j)).group);
       } else if (kind === 'stl') {
         set({ stage: '解析中' }); await nextFrame();
         const g = new STLLoader().parse(buf);
@@ -69,7 +73,7 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
         group.add(new THREE.Mesh(g, material()));
       } else {
         set({ stage: '解析中', detail: 'WebAssembly を準備しています' });
-        const r = await runOcct(kind, buf, set, j);
+        const r = await runOcct(pre!, kind, buf, set, j);
         if (!r.meshes.length) throw new Error('empty');
         const built: THREE.Mesh[] = [];
         for (let i = 0; i < r.meshes.length; i++) {

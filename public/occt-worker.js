@@ -6,6 +6,7 @@ function init() {
   return ready;
 }
 self.onmessage = async (e) => {
+  if (e.data.warm) { init(); return; }
   const { kind, buffer } = e.data;
   try {
     const occt = await init();
