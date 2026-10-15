@@ -27,6 +27,6 @@ function pagesHeaders(): Plugin {
 export default defineConfig({
   plugins: [react(), pagesHeaders()],
   resolve: { alias: { buffer: 'buffer/' } },
-  build: { target: 'es2022', chunkSizeWarningLimit: 2000 },
+  build: { target: 'es2022', chunkSizeWarningLimit: 2000, assetsDir: 'static' },
   test: { include: ['src/**/*.test.ts'] },
 } as never);
