@@ -72,8 +72,8 @@ export default function DxfViewer({ file }: { file: File }) {
   const [data, setData] = useState<{ segs: Seg[]; skipped: number } | null>(null);
   const [err, setErr] = useState('');
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [dark, setDark] = useState(true);
-  const api = useRef<{ fit: () => void; lines: Map<string, THREE.Object3D>; setBg: (d: boolean) => void } | null>(null);
+  const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>('dark');
+  const api = useRef<{ fit: () => void; lines: Map<string, THREE.Object3D>; setBg: (m: 'light' | 'dark' | 'jade') => void } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -124,8 +124,20 @@ export default function DxfViewer({ file }: { file: File }) {
       cam.left = -w * half; cam.right = w * half; cam.top = h * half; cam.bottom = -h * half; cam.zoom = 1;
       cam.position.set(c.x, c.y, 10); controls.target.set(c.x, c.y, 0); cam.updateProjectionMatrix(); controls.update();
     };
-    const setBg = (d: boolean) => { scene.background = new THREE.Color(d ? 0x16181b : 0xffffff); whites.forEach((m) => m.color.set(d ? 0xffffff : 0x15171a)); };
-    setBg(true);
+    const BGS = { light: 0xf4f5f3, dark: 0x1e2124, jade: 0xe8f0ec } as const;
+    const orig = new Map([...mats.values()].map((x) => [x, x.color.clone()]));
+    // 明るい背景では、黄色・シアンなど明るい線色を暗くして読みやすくします
+    const setBg = (m: 'light' | 'dark' | 'jade') => {
+      scene.background = new THREE.Color(BGS[m]);
+      for (const [x, c0] of orig) {
+        if (whites.includes(x)) { x.color.set(m === 'dark' ? 0xe8ebe6 : 0x2a2e32); continue; }
+        const c = c0.clone(); const hsl = { h: 0, s: 0, l: 0 }; c.getHSL(hsl);
+        if (m === 'dark') { if (hsl.l < 0.35) c.setHSL(hsl.h, hsl.s, 0.6); }
+        else if (hsl.l > 0.42) c.setHSL(hsl.h, Math.min(1, hsl.s), 0.36);
+        x.color.copy(c);
+      }
+    };
+    setBg('dark');
     api.current = { fit, lines, setBg };
     const resize = () => { renderer.setSize(el.clientWidth, el.clientHeight); fit(); };
     const ro = new ResizeObserver(resize); ro.observe(el); resize();
@@ -143,7 +155,7 @@ export default function DxfViewer({ file }: { file: File }) {
     <div className="three-wrap">
       <div className="toolbar">
         <button onClick={() => api.current?.fit()}>全体表示</button>
-        <button aria-pressed={!dark} onClick={() => { setDark(!dark); api.current?.setBg(!dark); }}>背景 {dark ? '黒' : '白'}</button>
+        <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">背景 {bg === 'light' ? 'ライト' : bg === 'dark' ? 'ダーク' : 'ジェード'}</button>
         {data.skipped > 0 && <span className="hint-inline">文字・寸法など {data.skipped} 件は、現在は表示していません。</span>}
       </div>
       <div className="dxf-layout">

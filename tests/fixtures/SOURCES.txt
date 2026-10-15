@@ -5,3 +5,5 @@ dice.u3d (inside sample-3d-u3d.pdf), sample.u3d (= malte.u3d), epix.prc (inside 
 sample.x_t: header-only Parasolid text file written by hand for local-viewer tests (no geometry), CC0.
 multi.stl: two-solid ASCII STL written by hand for tests, CC0.
 text/*: written by hand for local-viewer tests, CC0.
+styled.xlsx: 見積書 sample generated with ExcelJS for tests, CC0.
+sample.sqlite: handwritten SQLite for tests, CC0.

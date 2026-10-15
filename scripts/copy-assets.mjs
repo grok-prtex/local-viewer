@@ -9,4 +9,8 @@ for (const d of ['cmaps', 'standard_fonts', 'wasm', 'iccs'])
   cpSync(nm + 'pdfjs-dist/' + d, pub + 'vendor/pdfjs/' + d, { recursive: true });
 mkdirSync(pub + 'vendor/libheif', { recursive: true });
 for (const f of ['libheif.js', 'libheif.wasm', 'LICENSE']) cpSync(nm + 'libheif-js/libheif-wasm/' + f, pub + 'vendor/libheif/' + f);
+mkdirSync(pub + 'vendor/exceljs', { recursive: true });
+cpSync(nm + 'exceljs/dist/exceljs.bare.min.js', pub + 'vendor/exceljs/exceljs.bare.min.js');
+mkdirSync(pub + 'vendor/sqljs', { recursive: true });
+for (const f of ['sql-wasm.js', 'sql-wasm.wasm']) cpSync(nm + 'sql.js/dist/' + f, pub + 'vendor/sqljs/' + f);
 console.log('assets copied');

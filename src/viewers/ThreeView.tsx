@@ -5,7 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; }
 
-type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (dark: boolean) => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setGhost: (g: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
+type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (m: 'light' | 'dark' | 'jade') => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setGhost: (g: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
 
 function label(text: string, color: string) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
@@ -37,7 +37,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
   const [picked, setPicked] = useState('');
   const [pivotNote, setPivotNote] = useState('モデル中心');
   const [wire, setWire] = useState(false);
-  const [dark, setDark] = useState(false);
+  const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>('light');
   const [size, setSize] = useState<THREE.Vector3 | null>(null);
 
   useEffect(() => {
@@ -85,8 +85,9 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       const mm = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | THREE.MeshStandardMaterial[] | undefined;
       for (const m of Array.isArray(mm) ? mm : mm ? [mm] : []) if ('wireframe' in m) m.wireframe = w;
     });
-    const setBg = (d: boolean) => { scene.background = new THREE.Color(d ? 0x16181b : 0xf4f4f0); };
-    setBg(false);
+    const BGS = { light: 0xf4f5f3, dark: 0x1e2124, jade: 0xe8f0ec } as const;
+    const setBg = (m: 'light' | 'dark' | 'jade') => { scene.background = new THREE.Color(BGS[m]); };
+    setBg('light');
     // 原点の座標軸とグリッド（切り替え式）
     const L = Math.max(sz.x, sz.y, sz.z) || 1;
     const helpers = new THREE.Group(); helpers.visible = false; scene.add(helpers);
@@ -185,7 +186,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       <div className="toolbar">
         <button onClick={() => api.current?.fit()}>全体表示</button>
         <button aria-pressed={wire} onClick={() => { setWire(!wire); api.current?.setWire(!wire); }}>ワイヤーフレーム</button>
-        <button aria-pressed={dark} onClick={() => { setDark(!dark); api.current?.setBg(!dark); }}>背景 {dark ? '黒' : '白'}</button>
+        <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">背景 {bg === 'light' ? 'ライト' : bg === 'dark' ? 'ダーク' : 'ジェード'}</button>
         <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>原点・グリッド</button>
         <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title="モデルの上方向を切り替えます">上方向 {up.toUpperCase()}</button>
         <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">回転中心：{pivotNote}</button>

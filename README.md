@@ -50,7 +50,7 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 ```
 default-src 'none'; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' blob: data:; child-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
 ```
-`/occt-worker.js`（STEP / IGES を読む Web Worker）だけ:
+`/occt-worker / xlsx-worker.js`（STEP / IGES を読む Web Worker）だけ:
 ```
 default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self'
 ```

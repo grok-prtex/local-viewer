@@ -87,7 +87,7 @@ export default function ImageViewer({ file }: { file: File }) {
   const [err, setErr] = useState('');
   const [stage, setStage] = useState<'読み込み中' | '解析中'>('読み込み中');
   const [page, setPage] = useState(0);
-  const [dark, setDark] = useState(false);
+  const [bg, setBg] = useState<'light' | 'dark' | 'jade'>('light');
   const [view, setView] = useState<{ s: number; x: number; y: number } | null>(null);
   const host = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number } | null>(null);
@@ -139,7 +139,7 @@ export default function ImageViewer({ file }: { file: File }) {
         <button onClick={() => { const el = host.current!; setView({ s: 1, x: (el.clientWidth - cur.w) / 2, y: (el.clientHeight - cur.h) / 2 }); }}>等倍</button>
         <button onClick={() => zoomAt(1 / 1.25)}>縮小</button>
         <button onClick={() => zoomAt(1.25)}>拡大</button>
-        <button aria-pressed={dark} onClick={() => setDark(!dark)}>背景 {dark ? '黒' : '白'}</button>
+        <button onClick={() => setBg((b) => b === 'light' ? 'dark' : b === 'dark' ? 'jade' : 'light')} data-testid="bg">背景 {bg === 'light' ? 'ライト' : bg === 'dark' ? 'ダーク' : 'ジェード'}</button>
         {res.pages.length > 1 && (
           <select value={page} onChange={(e) => { setPage(Number(e.target.value)); setView(null); }} aria-label="ページ">
             {res.pages.map((p, i) => <option key={i} value={i}>{p.label ?? i + 1}</option>)}
@@ -147,7 +147,7 @@ export default function ImageViewer({ file }: { file: File }) {
         )}
         <span className="mono dims" data-testid="img-dims">{cur.w} × {cur.h} px · {Math.round((view?.s ?? 1) * 100)}%</span>
       </div>
-      <div ref={host} className={'img-host' + (dark ? ' dark' : '')} data-testid="img-host"
+      <div ref={host} className={'img-host bg-' + bg} data-testid="img-host"
         onPointerDown={(e) => { if (e.pointerType === 'touch' && !e.isPrimary) { drag.current = null; return; } drag.current = { x: e.clientX, y: e.clientY }; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); }}
         onPointerMove={(e) => { const d = drag.current; if (!d || !e.isPrimary) return; setView((v) => v && { ...v, x: v.x + e.clientX - d.x, y: v.y + e.clientY - d.y }); drag.current = { x: e.clientX, y: e.clientY }; }}
         onPointerUp={() => { drag.current = null; }}

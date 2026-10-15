@@ -379,3 +379,30 @@ test.describe('テキスト・ソースコード', () => {
     await expect(page.getByTestId('code')).toContainText('export const x');
   });
 });
+
+test('XLSX の書式（結合・塗り・太字・罫線・列幅・表示形式）', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/styled.xlsx');
+  const t = page.getByTestId('sheet');
+  await expect(t.getByText('見積書')).toBeVisible();
+  await expect(t.locator('td', { hasText: '見積書' })).toHaveAttribute('colspan', '4');
+  await expect(t.locator('td', { hasText: '項目' })).toHaveCSS('background-color', 'rgb(26, 95, 74)');
+  await expect(t.getByText('12,800')).toBeVisible();
+  await expect(t.getByText('2026/10/15')).toBeVisible();
+  await expect(t.getByText('¥21,200')).toBeVisible();
+  await page.screenshot({ path: 'shots/xlsx-styled.png' });
+});
+
+test('SQLite：テーブル一覧・行・読み取り専用 SQL', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.sqlite');
+  await expect(page.getByTestId('sql-tables')).toContainText('部品');
+  await expect(page.getByTestId('sql-grid')).toContainText('フレーム');
+  await page.getByTestId('sql-input').fill('SELECT 名称 FROM 部品 WHERE 数量 > 5');
+  await page.getByTestId('sql-run').click();
+  await expect(page.getByTestId('sql-grid')).toContainText('ブラケット');
+  await expect(page.getByTestId('sql-grid')).not.toContainText('フレーム');
+  await page.getByTestId('sql-input').fill('DELETE FROM 部品');
+  await page.getByTestId('sql-run').click();
+  await expect(page.getByText('書き込みや変更を伴う SQL は実行できません')).toBeVisible();
+});
