@@ -108,9 +108,9 @@ test('MSG', async ({ page, baseURL }) => {
 test('ZIP（中の STEP を開く）', async ({ page, baseURL }) => {
   const w = watch(page, baseURL!);
   await openFixture(page, 'sample.zip');
-  await expect(page.getByTestId('zip-list').locator('li')).toHaveCount(3);
+  await expect(page.getByTestId('zip-list').locator('li:not(.zdir)')).toHaveCount(3);
   await page.screenshot({ path: `${SHOTS}/08-zip.png` });
-  await page.locator('li', { hasText: 'cad/sample.step' }).getByRole('button', { name: '開く', exact: true }).click();
+  await page.locator('li:not(.zdir)', { hasText: 'sample.step' }).getByRole('button', { name: '開く', exact: true }).click();
   await expect(page.locator('[data-testid="three-host"][data-rendered="true"]')).toBeVisible({ timeout: 40000 });
   w.assertClean('sample.zip'); expect(w.problems).toEqual([]);
 });
@@ -314,4 +314,68 @@ test('モバイル：2 本指ピンチで画像を拡大', async ({ browser }) =
   // ページ自体は拡大されていない
   expect(await page.evaluate(() => window.visualViewport?.scale ?? 1)).toBe(1);
   await ctx.close();
+});
+
+test.describe('テキスト・ソースコード', () => {
+  for (const [f, enc, txt] of [['sjis.txt', 'Shift_JIS', '日本語のテキスト'], ['eucjp.log', 'EUC-JP', 'ログ 日本語'], ['utf16.ini', 'UTF-16LE', '設定']]) {
+    test(`文字コード ${f}`, async ({ page }) => {
+      await page.goto('/');
+      await page.setInputFiles('input[type=file]', `tests/fixtures/text/${f}`);
+      await expect(page.getByTestId('code')).toContainText(txt);
+      await expect(page.getByTestId('encoding')).toContainText(enc);
+    });
+  }
+  test('Markdown は安全に整形・ソース切替', async ({ page }) => {
+    const ext: string[] = []; page.on('request', (r) => { if (!r.url().startsWith('http://localhost') && !r.url().startsWith('http://127.')) ext.push(r.url()); });
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.md');
+    await expect(page.getByTestId('markdown').locator('h1')).toHaveText('見出し');
+    await expect(page.getByTestId('markdown').locator('script')).toHaveCount(0);
+    await expect(page.getByTestId('markdown')).toContainText('外部の画像は読み込みません');
+    await page.getByTestId('mode-source').click();
+    await expect(page.getByTestId('code')).toContainText('# 見出し');
+    expect(ext).toEqual([]);
+  });
+  test('JSON / XML 整形', async ({ page }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.json');
+    await expect(page.getByTestId('code').locator('.row')).toHaveCount(10);
+    await page.getByRole('button', { name: '別のファイルを開く' }).click().catch(() => {});
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.xml');
+    await expect(page.getByTestId('code')).toContainText('<item id="1">値</item>');
+  });
+  test('HTML はスクリプトなしの枠で表示', async ({ page }) => {
+    const ext: string[] = []; page.on('request', (r) => { if (r.url().includes('example.com')) ext.push(r.url()); });
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.html');
+    const fr = page.frameLocator('[data-testid="html-frame"]');
+    await expect(fr.locator('h1')).toHaveText('HTML テスト');
+    await expect(fr.locator('body')).not.toContainText('SCRIPT RAN');
+    expect(ext).toEqual([]);
+  });
+  test('ソースのハイライト・行番号・Ctrl+F', async ({ page }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.py');
+    await expect(page.getByTestId('code').locator('.hljs-keyword').first()).toBeVisible();
+    await expect(page.getByTestId('code').locator('.ln').nth(5)).toHaveText('6');
+    await page.keyboard.press('Control+f');
+    await page.getByTestId('find').fill('hello');
+    await expect(page.getByTestId('find-count')).toHaveText('1 / 2 行');
+    await page.getByTestId('find').press('Enter');
+    await expect(page.getByTestId('find-count')).toHaveText('2 / 2 行');
+  });
+  for (const f of ['sample.st', 'sample.nc']) test(`PLC/NC ${f}`, async ({ page }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', `tests/fixtures/text/${f}`);
+    await expect(page.getByTestId('code').locator('[class^="hljs-"]').first()).toBeVisible();
+  });
+  test('ZIP のフォルダーツリーからソースを開く', async ({ page }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/src.zip');
+    await page.getByRole('button', { name: /src\// }).click();
+    await page.getByRole('button', { name: /util\// }).click();
+    await page.locator('li', { hasText: 'helper.ts' }).getByRole('button', { name: '開く' }).click();
+    await expect(page.getByTestId('code')).toContainText('export const x');
+  });
 });

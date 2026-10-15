@@ -65,7 +65,7 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
       if (kind === 'u3d') {
         set({ stage: '解析中' });
         const { loadU3D } = await import('../u3d/toThree');
-        group.add((await loadU3D(buf, j)).group);
+        const u = await loadU3D(buf, j); group.add(u.group); if (u.tree) root = { name: u.tree.name, obj: u.group, children: u.tree.children.map((c, i) => ({ name: c.name, obj: u.group.children[i], children: [] })) };
       } else if (kind === 'stl') {
         set({ stage: '解析中' }); await nextFrame();
         const g = new STLLoader().parse(buf);

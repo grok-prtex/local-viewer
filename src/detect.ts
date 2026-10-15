@@ -1,13 +1,14 @@
 import { isParasolid } from './cadinfo';
+import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'text' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
   label: string;
-  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive';
+  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive' | 'Text';
   exts: string[];
   ready: boolean;
 }
@@ -27,6 +28,12 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
   { kind: 'parasolid', label: 'Parasolid（情報のみ）', group: 'CAD', exts: ['x_t', 'x_b'], ready: true },
   { kind: 'sw', label: 'SolidWorks（プレビュー画像）', group: 'CAD', exts: ['sldprt', 'sldasm'], ready: true },
+  { kind: 'text', label: 'テキスト・ログ・設定', group: 'Text', exts: ['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env'], ready: true },
+  { kind: 'text', label: 'Markdown（整形表示）', group: 'Text', exts: ['md'], ready: true },
+  { kind: 'text', label: 'JSON / XML / YAML', group: 'Text', exts: ['json', 'xml', 'yaml', 'yml'], ready: true },
+  { kind: 'text', label: 'HTML（安全な枠内で表示）', group: 'Text', exts: ['html', 'htm'], ready: true },
+  { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Text', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
+  { kind: 'text', label: 'ソースコード', group: 'Text', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
   { kind: 'image', label: 'HEIC / HEIF', group: 'Image', exts: ['heic', 'heif'], ready: true },
@@ -85,6 +92,8 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     return 'msg';
   }
   if (/^AC10\d\d/.test(text)) return 'dwg';
+  // テキスト系（.ts は MPEG-TS 動画と重なるため、先頭が同期バイト 0x47 でなければテキスト）
+  if (ext in TEXT_LANG && looksText(head) && !(ext === 'ts' && head[0] === 0x47)) return 'text';
   if (ext !== 'pdf' && ext !== 'dxf' && ext !== 'eml' && ext !== 'step' && ext !== 'stp') {
     const mk = mediaKind(ext, head); if (mk) return mk;
     if (imageSub(ext, head)) return 'image';
@@ -109,6 +118,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   if (/^\s*0\s*\r?\n\s*SECTION/.test(text)) return 'dxf';
   if (/^(From|Received|Return-Path|Message-ID|MIME-Version|Subject|Date|To|Delivered-To):/im.test(text) && ext !== 'txt') return 'eml';
   if (text.length >= 80 && text[72] === 'S' && /^.{72}S\s*\d+/.test(text)) return 'iges';
+  if (ext !== 'dwg' && looksText(head) && head.length > 0) return 'text';
   return 'unknown';
 }
 

@@ -32,21 +32,41 @@ export default function ZipViewer({ file, onOpen, canOpenName }: { file: File; o
     const blob = await zip.file(name)!.async('blob'); const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = name.split('/').pop() || name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
+  // フォルダーごとのツリーにします（ソースコード一式などを見て回れるように）
+  type Dir = { name: string; path: string; dirs: Map<string, Dir>; files: typeof files };
+  const root: Dir = { name: '', path: '', dirs: new Map(), files: [] };
+  for (const f of files) {
+    const parts = f.name.split('/'); let d = root;
+    for (let i = 0; i < parts.length - 1; i++) { const p = parts[i]; if (!d.dirs.has(p)) d.dirs.set(p, { name: p, path: d.path + p + '/', dirs: new Map(), files: [] }); d = d.dirs.get(p)!; }
+    d.files.push(f);
+  }
+  const flat = root.dirs.size === 0;
+  const row = (f: (typeof files)[number]) => {
+    const sz = (f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
+    return (
+      <li key={f.name}>
+        <span className="att-name">{f.name.split('/').pop()}</span>
+        {sz != null && <span className="mono att-size">{size(sz)}</span>}
+        {canOpenName(f.name) && <button onClick={() => open(f.name)}>開く</button>}
+        <button className="ghost" onClick={() => save(f.name)}>保存</button>
+      </li>
+    );
+  };
+  const DirView = ({ d, depth }: { d: Dir; depth: number }) => {
+    const [openD, setOpenD] = useState(depth < 1);
+    return (
+      <li className="zdir">
+        <button className="zdir-btn" onClick={() => setOpenD(!openD)} aria-expanded={openD}>{openD ? '▾' : '▸'} {d.name}/</button>
+        {openD && <ul>{[...d.dirs.values()].sort((a, b) => a.name.localeCompare(b.name)).map((c) => <DirView key={c.path} d={c} depth={depth + 1} />)}{d.files.map(row)}</ul>}
+      </li>
+    );
+  };
   return (
     <div className="zip">
       <div className="label mono">ENTRIES · {files.length}</div>
-      <ul data-testid="zip-list">
-        {files.map((f) => {
-          const sz = (f as unknown as { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
-          return (
-            <li key={f.name}>
-              <span className="att-name">{f.name}</span>
-              {sz != null && <span className="mono att-size">{size(sz)}</span>}
-              {canOpenName(f.name) && <button onClick={() => open(f.name)}>開く</button>}
-              <button className="ghost" onClick={() => save(f.name)}>保存</button>
-            </li>
-          );
-        })}
+      <ul data-testid="zip-list" className={flat ? '' : 'ztree'}>
+        {[...root.dirs.values()].sort((a, b) => a.name.localeCompare(b.name)).map((c) => <DirView key={c.path} d={c} depth={0} />)}
+        {root.files.map(row)}
       </ul>
     </div>
   );

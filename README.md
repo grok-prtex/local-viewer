@@ -6,6 +6,10 @@
 - ライセンス: MIT（同梱ライブラリはそれぞれのライセンス。`LICENSE` / `NOTICE` / `tests/fixtures/SOURCES.txt` を参照）
 - 画面下の「ソースコード（GitHub）」の横に、公開中のビルドのコミットを表示しています。
 
+## テキスト・ソースコード
+
+TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-16 / Shift_JIS / EUC-JP）。Markdown は DOMPurify で無害化して表示し、外部の画像は読み込みません。JSON / XML は整形表示、ソースコード（Python / JS / TS / C / C# / Java / Go / Rust / VBA / ST・SCL / G コードなど）は同梱の highlight.js でハイライトします。行番号・折り返し・Ctrl+F 検索に対応しています。HTML は `sandbox` 付きの iframe（スクリプト無効、`default-src 'none'`）の中で表示します。ZIP はフォルダーツリーで中身を見られます。
+
 ## 対応形式
 
 | 分類 | 形式 | 状態 | 使用ライブラリ |
