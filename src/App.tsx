@@ -14,6 +14,7 @@ const DocxViewer = lazy(() => import('./viewers/DocxViewer'));
 const ZipViewer = lazy(() => import('./viewers/ZipViewer'));
 const ImageViewer = lazy(() => import('./viewers/ImageViewer'));
 const MediaViewer = lazy(() => import('./viewers/MediaViewer'));
+const CadInfoViewer = lazy(() => import('./viewers/CadInfoViewer'));
 
 interface Opened { file: File; kind: FormatKind; }
 const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive'] as const;
@@ -164,6 +165,7 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'docx': return <DocxViewer file={file} />;
     case 'image': return <ImageViewer file={file} />;
     case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
+    case 'parasolid': case 'sw': return <CadInfoViewer file={file} kind={kind} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
     case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
     case 'dwg': return <ErrorBox>DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。</ErrorBox>;

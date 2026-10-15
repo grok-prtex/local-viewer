@@ -3,6 +3,7 @@ import * as pdfjs from 'pdfjs-dist';
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { lazy, Suspense } from 'react';
 import { Loading, ErrorBox } from '../ui';
+import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { extract3D, type Pdf3D } from '../pdf3d';
 const Pdf3DView = lazy(() => import('./Pdf3DView'));
 
@@ -15,19 +16,23 @@ export default function PdfViewer({ file }: { file: File }) {
   const [err, setErr] = useState('');
   const [model, setModel] = useState<Pdf3D | null>(null);
   const [mode, setMode] = useState<'pages' | '3d'>('pages');
+  const [prog, setProg] = useState<ProgressState>({ stage: '読み込み中', pct: 0, stages: ['読み込み中', '解析中', '描画中'] });
+  const [rendered, setRendered] = useState(0);
 
   useEffect(() => {
     let alive = true; let d: pdfjs.PDFDocumentProxy | null = null;
-    file.arrayBuffer().then((buf) => {
+    const st = ['読み込み中', '解析中', '描画中'] as const;
+    readWithProgress(file, (pct) => alive && setProg({ stage: '読み込み中', pct, stages: st })).then((buf) => {
+      if (alive) setProg({ stage: '解析中', stages: st });
       extract3D(new Uint8Array(buf.slice(0))).then((m) => { if (alive && m) { setModel(m); setMode(m.kind === 'U3D' ? '3d' : 'pages'); } }).catch(() => {});
       return buf;
-    }).then((buf) => pdfjs.getDocument({
+    }).then((buf) => { const t = pdfjs.getDocument({
       data: new Uint8Array(buf),
       cMapUrl: '/vendor/pdfjs/cmaps/', cMapPacked: true,
       standardFontDataUrl: '/vendor/pdfjs/standard_fonts/',
       wasmUrl: '/vendor/pdfjs/wasm/', iccUrl: '/vendor/pdfjs/iccs/',
       enableXfa: false,
-    }).promise).then((p) => { d = p; if (alive) setDoc(p); })
+    }); t.onProgress = ({ loaded, total }: { loaded: number; total: number }) => { if (alive && total) setProg({ stage: '解析中', pct: (loaded / total) * 100, stages: st }); }; return t.promise; }).then((p) => { d = p; if (alive) setDoc(p); })
       .catch((e) => alive && setErr(e?.name === 'PasswordException'
         ? 'パスワード付きの PDF は、現在は開けません。'
         : 'PDF を読み込めませんでした。ファイルが壊れている可能性があります。'));
@@ -37,7 +42,7 @@ export default function PdfViewer({ file }: { file: File }) {
   useEffect(() => {
     if (!doc || mode !== 'pages') return;
     const el = host.current!; el.innerHTML = '';
-    let cancelled = false;
+    let cancelled = false; setRendered(0);
     const width = Math.min(el.clientWidth || 800, 1000);
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -57,6 +62,7 @@ export default function PdfViewer({ file }: { file: File }) {
       canvas.style.width = vp.width / dpr + 'px'; canvas.style.height = vp.height / dpr + 'px';
       await page.render({ canvas, canvasContext: canvas.getContext('2d')!, viewport: vp }).promise;
       canvas.dataset.rendered = 'true';
+      if (!cancelled) setRendered((r) => r + 1);
     };
     (async () => {
       for (let n = 1; n <= doc.numPages; n++) {
@@ -73,7 +79,7 @@ export default function PdfViewer({ file }: { file: File }) {
   }, [doc, zoom, mode]);
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!doc) return <Loading>PDF を読み込んでいます</Loading>;
+  if (!doc) return <Progress p={prog} />;
   const switcher = model && (
     <div className="pdf3d-bar">
       <div className="tabs" role="tablist">
@@ -91,6 +97,7 @@ export default function PdfViewer({ file }: { file: File }) {
       {switcher}
       <div className="toolbar">
         <span className="mono">{doc.numPages} ページ</span>
+        {rendered < Math.min(doc.numPages, 1) ? <span className="mono" data-testid="pdf-render">描画中…</span> : <span className="mono hint" data-testid="pdf-render">描画済み {rendered} / {doc.numPages}</span>}
         <button onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}>縮小</button>
         <span className="mono">{Math.round(zoom * 100)}%</span>
         <button onClick={() => setZoom((z) => Math.min(5, z * 1.25))}>拡大</button>

@@ -1,0 +1,16 @@
+**ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz**************************
+**PARASOLID !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~0123456789**************************
+**PART1;
+MC=unknown;
+APPL=local-viewer test;
+FORMAT=text;
+GUISE=transmit;
+KEY=sample;
+FILE=sample.x_t;
+DATE=Thu Oct 15 2026;
+**PART2;
+SCH=SCH_1200000_12006;
+USFLD_SIZE=0;
+**PART3;
+**END_OF_HEADER*****************************************************************
+T51 : TRANSMIT FILE created by modeller version 120000017 SCH_1200000_12006_13006

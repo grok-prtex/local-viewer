@@ -105,3 +105,26 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .media-audio { width: 100%; }
 .foot a { color: var(--ink-2); text-underline-offset: 3px; }
 .foot a:hover { color: var(--signal-ink); }
+.state.notice { color: var(--ink); background: var(--info-wash); border: 1px solid var(--info-line); border-radius: var(--r-md); padding: var(--sp-4); text-align: left; justify-content: flex-start; margin-bottom: var(--sp-4); }
+.sw-preview { max-width: 100%; border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; margin-bottom: var(--sp-4); }
+.progress { max-width: 560px; margin: var(--sp-10) auto; padding: var(--sp-6); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); display: flex; flex-direction: column; gap: var(--sp-3); }
+.stages { list-style: none; display: flex; gap: var(--sp-2); padding: 0; margin: 0; flex-wrap: wrap; font-size: var(--fs-sm); }
+.stages li { color: var(--ink-4); }
+.stages li + li::before { content: '→'; margin-right: var(--sp-2); color: var(--ink-4); }
+.stages li.done { color: var(--ink-2); }
+.stages li.current { color: var(--signal-ink); font-weight: var(--w-semibold); }
+.bar { height: 6px; border-radius: var(--r-pill); background: var(--paper-2); overflow: hidden; position: relative; }
+.bar span { display: block; height: 100%; background: var(--signal); transition: width .2s; }
+.bar.indeterminate span { position: absolute; width: 30%; animation: indet 1.2s ease-in-out infinite; }
+@keyframes indet { from { left: -30%; } to { left: 100%; } }
+.progress-meta { display: flex; justify-content: space-between; font-size: var(--fs-sm); color: var(--ink-2); }
+.progress button { align-self: flex-end; }
+.tree { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3); max-height: 66vh; overflow: auto; font-size: var(--fs-sm); }
+.tree ul { list-style: none; margin: 0; padding-left: 14px; }
+.tree > ul { padding-left: 0; }
+.tree label { display: flex; gap: 6px; align-items: center; padding: 1px 0; word-break: break-all; }
+.tree input { accent-color: var(--signal); }
+.tree .twisty { width: 14px; border: 0; background: none; padding: 0; min-height: 0; color: var(--ink-3); cursor: pointer; }
+.three-layout { display: grid; grid-template-columns: 1fr 260px; gap: var(--sp-3); }
+@media (max-width: 860px) { .three-layout { grid-template-columns: 1fr; } }
+.picked { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); color: var(--ink-2); }

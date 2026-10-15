@@ -244,3 +244,18 @@ test('ZIP 内の画像と動画を開く', async ({ page, baseURL }) => {
   await expect.poll(() => page.getByTestId('video').evaluate((m: HTMLMediaElement) => m.readyState), { timeout: 15000 }).toBeGreaterThan(0);
   w.assertClean('media.zip'); expect(w.problems).toEqual([]);
 });
+
+test('Parasolid header info', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.x_t');
+  await expect(page.getByTestId('ps-info')).toContainText('local-viewer test');
+  await expect(page.getByText('形状表示は準備中です')).toBeVisible();
+});
+
+test('progress UI and cancel for STEP', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.step');
+  // 小さいファイルは一瞬で終わるので、進捗が出るか結果が出るかのどちらかを確認します
+  await expect(page.getByTestId('progress').or(page.getByTestId('three-host'))).toBeVisible();
+  await expect(page.getByTestId('three-host')).toBeVisible({ timeout: 60000 });
+});

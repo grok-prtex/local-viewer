@@ -1,7 +1,8 @@
+import { isParasolid } from './cadinfo';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'parasolid' | 'sw' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
@@ -24,6 +25,8 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'iges', label: 'IGES', group: 'CAD', exts: ['iges', 'igs'], ready: true },
   { kind: 'stl', label: 'STL', group: 'CAD', exts: ['stl'], ready: true },
   { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
+  { kind: 'parasolid', label: 'Parasolid（情報のみ）', group: 'CAD', exts: ['x_t', 'x_b'], ready: true },
+  { kind: 'sw', label: 'SolidWorks（プレビュー画像）', group: 'CAD', exts: ['sldprt', 'sldasm'], ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
   { kind: 'image', label: 'HEIC / HEIF', group: 'Image', exts: ['heic', 'heif'], ready: true },
@@ -74,6 +77,8 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     if (ext === 'pptx') return 'pptx';
     return 'zip';
   }
+  if (ext === 'sldprt' || ext === 'sldasm' || ext === 'slddrw') return 'sw';
+  if (ext === 'x_t' || ext === 'x_b' || ext === 'xmt_txt' || ext === 'xmt_bin' || isParasolid(head)) return 'parasolid';
   if (startsWith(head, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
     // OLE2 複合ファイル（MSG / XLS など）
     if (ext === 'xls') return 'sheet';

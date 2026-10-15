@@ -1,53 +1,103 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { STLLoader } from 'three/examples/jsm/loaders/STLLoader.js';
 import ThreeView, { material } from './ThreeView';
-import { Loading, ErrorBox } from '../ui';
+import ModelTree, { type TreeNode } from './ModelTree';
+import { ErrorBox } from '../ui';
+import { Progress, readWithProgress, nextFrame, type ProgressState } from '../progress';
 
-interface WorkerMesh { position: Float32Array; normal: Float32Array | null; index: Uint32Array; color: number[] | null; }
+interface FaceColor { first: number; last: number; color: number[] | null; }
+interface WorkerMesh { name: string; position: Float32Array; normal: Float32Array | null; index: Uint32Array; color: number[] | null; faceColors: FaceColor[] | null; }
+interface OcctNode { name: string; meshes: number[]; children: OcctNode[]; }
 
-function runOcct(kind: 'step' | 'iges', buffer: ArrayBuffer): Promise<WorkerMesh[]> {
+function runOcct(kind: 'step' | 'iges', buffer: ArrayBuffer, onStage: (p: ProgressState) => void, job: { cancel?: () => void }): Promise<{ meshes: WorkerMesh[]; root: OcctNode | null }> {
   return new Promise((resolve, reject) => {
     const w = new Worker('/occt-worker.js');
-    w.onmessage = (e) => { w.terminate(); e.data.ok ? resolve(e.data.meshes) : reject(new Error(e.data.error)); };
+    job.cancel = () => { w.terminate(); reject(new Error('cancelled')); };
+    w.onmessage = (e) => {
+      if (e.data.type === 'progress') { onStage({ stage: '解析中', detail: 'OpenCascade で形状を計算しています' }); return; }
+      w.terminate(); e.data.ok ? resolve(e.data) : reject(new Error(e.data.error));
+    };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
     w.postMessage({ kind, buffer }, [buffer]);
   });
 }
 
+const rgb = (c: number[]) => new THREE.Color(c[0], c[1], c[2]);
+
+function buildMesh(m: WorkerMesh): THREE.Mesh {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(m.position, 3));
+  if (m.normal) g.setAttribute('normal', new THREE.BufferAttribute(m.normal, 3));
+  g.setIndex(new THREE.BufferAttribute(m.index, 1));
+  if (!m.normal) g.computeVertexNormals();
+  if (m.faceColors) {
+    // 面ごとの色（STEP の面色）をマテリアルグループで表現します
+    const mats: THREE.Material[] = []; const key = new Map<string, number>();
+    for (const f of m.faceColors) {
+      const c = f.color ?? m.color; const k = c ? c.join(',') : 'none';
+      let mi = key.get(k); if (mi == null) { mi = mats.length; key.set(k, mi); mats.push(material(c ? rgb(c) : undefined)); }
+      g.addGroup(f.first * 3, (f.last - f.first + 1) * 3, mi);
+    }
+    return new THREE.Mesh(g, mats);
+  }
+  return new THREE.Mesh(g, material(m.color ? rgb(m.color) : undefined));
+}
+
 export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 'step' | 'iges' | 'u3d' }) {
   const [obj, setObj] = useState<THREE.Object3D | null>(null);
+  const [tree, setTree] = useState<TreeNode | null>(null);
   const [err, setErr] = useState('');
+  const [prog, setProg] = useState<ProgressState>({ stage: '読み込み中', pct: 0 });
+  const job = useRef<{ cancel?: () => void; cancelled: boolean }>({ cancelled: false });
+
   useEffect(() => {
-    let alive = true;
+    let alive = true; const j = { cancelled: false } as { cancel?: () => void; cancelled: boolean }; job.current = j;
+    const set = (p: ProgressState) => { if (alive) setProg(p); };
     (async () => {
-      const buf = await file.arrayBuffer();
-      const group = new THREE.Group();
+      const buf = await readWithProgress(file, (pct) => set({ stage: '読み込み中', pct }), j);
+      const group = new THREE.Group(); group.name = file.name;
+      let root: TreeNode | null = null;
       if (kind === 'u3d') {
+        set({ stage: '解析中' });
         const { loadU3D } = await import('../u3d/toThree');
         group.add((await loadU3D(buf)).group);
       } else if (kind === 'stl') {
+        set({ stage: '解析中' }); await nextFrame();
         const g = new STLLoader().parse(buf);
         if (!g.getAttribute('normal')) g.computeVertexNormals();
         group.add(new THREE.Mesh(g, material()));
       } else {
-        const meshes = await runOcct(kind as 'step' | 'iges', buf);
-        if (!meshes.length) throw new Error('empty');
-        for (const m of meshes) {
-          const g = new THREE.BufferGeometry();
-          g.setAttribute('position', new THREE.BufferAttribute(m.position, 3));
-          if (m.normal) g.setAttribute('normal', new THREE.BufferAttribute(m.normal, 3));
-          g.setIndex(new THREE.BufferAttribute(m.index, 1));
-          if (!m.normal) g.computeVertexNormals();
-          const c = m.color ? new THREE.Color(m.color[0], m.color[1], m.color[2]) : undefined;
-          group.add(new THREE.Mesh(g, material(c)));
+        set({ stage: '解析中', detail: 'WebAssembly を準備しています' });
+        const r = await runOcct(kind, buf, set, j);
+        if (!r.meshes.length) throw new Error('empty');
+        const built: THREE.Mesh[] = [];
+        for (let i = 0; i < r.meshes.length; i++) {
+          if (j.cancelled) throw new Error('cancelled');
+          built.push(buildMesh(r.meshes[i]));
+          if (i % 100 === 99) { set({ stage: '形状変換中', pct: (i / r.meshes.length) * 100, detail: `${i + 1} / ${r.meshes.length} 部品` }); await nextFrame(); }
         }
+        // 部品の階層（アセンブリ構造）を Three.js のグループに写します
+        const toGroup = (n: OcctNode, depth: number): [THREE.Object3D, TreeNode] => {
+          const gr = new THREE.Group(); gr.name = n.name;
+          const tn: TreeNode = { name: n.name || '（名前なし）', obj: gr, children: [] };
+          for (const mi of n.meshes) { const m = built[mi]; if (!m) continue; m.name = r.meshes[mi].name; gr.add(m); if (n.children.length || n.meshes.length > 1) tn.children.push({ name: m.name || `形状 ${mi + 1}`, obj: m, children: [] }); }
+          if (depth < 40) for (const c of n.children) { const [co, ct] = toGroup(c, depth + 1); gr.add(co); tn.children.push(ct); }
+          return [gr, tn];
+        };
+        if (r.root) { const [o, t0] = toGroup(r.root, 0); group.add(o); let t = t0; while (t.name === '（名前なし）' && t.children.length === 1 && t.children[0].children.length) t = t.children[0]; root = t; } else built.forEach((m) => group.add(m));
       }
-      if (alive) setObj(group);
-    })().catch((e) => { console.warn('cad load failed', e); if (alive) setErr('3D モデルを読み込めませんでした。ファイルが壊れているか、対応していない書式の可能性があります。'); });
-    return () => { alive = false; };
+      set({ stage: '描画中' }); await nextFrame();
+      if (alive) { setTree(root && root.children.length ? root : null); setObj(group); }
+    })().catch((e) => {
+      if (!alive) return;
+      if (String(e?.message) === 'cancelled') setErr('読み込みをキャンセルしました。');
+      else { console.warn('cad load failed', e); setErr('3D モデルを読み込めませんでした。ファイルが壊れているか、対応していない書式の可能性があります。'); }
+    });
+    return () => { alive = false; j.cancelled = true; j.cancel?.(); };
   }, [file, kind]);
+
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!obj) return <Loading>{kind === 'stl' ? '読み込んでいます' : 'モデルを解析しています。大きなファイルは時間がかかります'}</Loading>;
-  return <ThreeView object={obj} />;
+  if (!obj) return <Progress p={prog} onCancel={() => { job.current.cancelled = true; job.current.cancel?.(); setErr('読み込みをキャンセルしました。'); }} />;
+  return <ThreeView object={obj} side={tree ? <ModelTree root={tree} /> : undefined} />;
 }
