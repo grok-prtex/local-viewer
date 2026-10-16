@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { FreeControls } from './freeControls';
 import { t } from '../i18n';
 
 interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; }
@@ -54,14 +54,12 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     const dir = new THREE.DirectionalLight(0xffffff, 1.6);
     camera.add(dir); dir.position.set(1, 1, 2); scene.add(camera);
     scene.add(object);
-    // OrbitControls は生成時の camera.up で回転軸を固定するため、上方向を変えたら作り直します
-    let controls!: OrbitControls;
+    // 真上・真下で止まらない自由回転（上方向の切替・全体表示で向きを作り直します）
+    let controls!: FreeControls;
     const makeControls = () => {
       const t = controls ? controls.target.clone() : null;
       controls?.dispose();
-      controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.screenSpacePanning = true;
+      controls = new FreeControls(camera, renderer.domElement);
       if (t) controls.target.copy(t);
     };
     makeControls();
@@ -173,8 +171,11 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     };
     loop();
     el.dataset.rendered = 'true';
+    // E2E 用：画面の上方向と、選んだ上方向軸との内積（負なら裏返し）
+    const upNote = () => { el.dataset.upDot = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).dot(upAxis === 'z' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0)).toFixed(3); };
+    renderer.domElement.addEventListener('pointerup', upNote); const upT = setInterval(upNote, 300);
     return () => {
-      cancelAnimationFrame(raf); ro.disconnect(); controls.dispose();
+      cancelAnimationFrame(raf); clearInterval(upT); ro.disconnect(); controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp); renderer.domElement.removeEventListener('dblclick', onDbl);
       distinct.forEach((m) => m.dispose()); ghostCache.forEach((m) => m.dispose());
       object.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });

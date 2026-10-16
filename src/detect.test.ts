@@ -69,4 +69,7 @@ describe('CAD info formats', () => {
     expect(detectFormat('a.sldasm', new Uint8Array(8))).toBe('unknown');
     expect(detectFormat('a.SLDDRW', new Uint8Array(8))).toBe('unknown');
   });
+  it('Jupyter ノートブック', () => {
+    expect(detectFormat('a.ipynb', new TextEncoder().encode('{"cells":[]}'))).toBe('ipynb');
+  });
 });

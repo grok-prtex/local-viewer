@@ -19,6 +19,7 @@ const TextViewer = lazy(() => import('./viewers/TextViewer'));
 const SqlViewer = lazy(() => import('./viewers/SqlViewer'));
 const JoblibViewer = lazy(() => import('./viewers/JoblibViewer'));
 const AccessViewer = lazy(() => import('./viewers/AccessViewer'));
+const NotebookViewer = lazy(() => import('./viewers/NotebookViewer'));
 
 interface Opened { file: File; kind: FormatKind; }
 const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text'] as const;
@@ -172,6 +173,7 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'image': return <ImageViewer file={file} />;
     case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
     case 'text': return <TextViewer file={file} />;
+    case 'ipynb': return <NotebookViewer file={file} />;
     case 'sqlite': return <SqlViewer file={file} />;
     case 'joblib': return <JoblibViewer file={file} />;
     case 'access': return <AccessViewer file={file} />;

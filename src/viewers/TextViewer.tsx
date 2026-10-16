@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+import { renderMarkdown } from '../markdown';
 import { decodeText, textMode, TEXT_LANG, type TextMode } from '../text';
 import { highlight, splitLines, escapeHtml } from '../hl';
 import { extOf } from '../detect';
@@ -11,18 +10,6 @@ const MAX_BYTES = 30 << 20;        // これより大きいファイルは先頭
 const HL_LIMIT = 1_500_000;        // これより長い文字列はハイライトしません（速度のため）
 const CHUNK = 3000;                // 一度に描く行数
 const ENCODINGS = ['自動', 'UTF-8', 'Shift_JIS', 'EUC-JP', 'UTF-16LE', 'UTF-16BE'] as const;
-
-/** Markdown を安全な HTML にします（スクリプト・外部画像は除去、リンクは別タブ＋参照元なし） */
-function renderMarkdown(src: string): string {
-  const raw = marked.parse(src, { async: false, gfm: true }) as string;
-  const purify = DOMPurify();
-  purify.addHook('afterSanitizeAttributes', (n) => {
-    const el = n as Element;
-    if (el.tagName === 'IMG') { const s = el.getAttribute('src') ?? ''; if (!s.startsWith('data:')) { el.replaceWith(Object.assign(document.createElement('span'), { className: 'md-noimg', textContent: t('［画像：{0}（外部の画像は読み込みません）］', el.getAttribute('alt') || s) })); } }
-    if (el.tagName === 'A') { el.setAttribute('target', '_blank'); el.setAttribute('rel', 'noopener noreferrer'); }
-  });
-  return purify.sanitize(raw, { FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'object', 'embed'], FORBID_ATTR: ['style'] });
-}
 
 function prettyXml(src: string): string | null {
   const doc = new DOMParser().parseFromString(src, 'application/xml');

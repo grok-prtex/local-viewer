@@ -2,7 +2,7 @@ import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'ipynb' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
@@ -33,6 +33,7 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'text', label: 'JSON / XML / YAML', group: 'Text', exts: ['json', 'xml', 'yaml', 'yml'], ready: true },
   { kind: 'text', label: 'HTML（安全な枠内で表示）', group: 'Text', exts: ['html', 'htm'], ready: true },
   { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Text', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
+  { kind: 'ipynb', label: 'Jupyter ノートブック', group: 'Text', exts: ['ipynb'], ready: true },
   { kind: 'text', label: 'ソースコード', group: 'Text', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
@@ -75,6 +76,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     const mk = mediaKind(ext, head); if (mk) return mk;
   }
   if (ext === 'joblib' || ext === 'pkl' || ext === 'pickle') return 'joblib';
+  if (ext === 'ipynb' && looksText(head)) return 'ipynb';
   if (ext === 'mdb' || ext === 'accdb' || ascii(head).startsWith('Standard Jet DB') || ascii(head).startsWith('Standard ACE DB')) return 'access';
   if (ascii(head).startsWith('SQLite format 3')) return 'sqlite';
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
