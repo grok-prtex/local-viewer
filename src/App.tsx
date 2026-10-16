@@ -22,7 +22,7 @@ const AccessViewer = lazy(() => import('./viewers/AccessViewer'));
 const NotebookViewer = lazy(() => import('./viewers/NotebookViewer'));
 
 interface Opened { file: File; kind: FormatKind; }
-const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text'] as const;
+const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text', 'Code'] as const;
 const isReady = (k: FormatKind) => FORMATS.some((f) => f.kind === k && f.ready);
 
 export default function App() {
@@ -103,7 +103,7 @@ export default function App() {
               <div className="groups">
                 {GROUPS.map((g) => (
                   <div className="group" key={g}>
-                    <div className="label mono">{g.toUpperCase()}</div>
+                    <div className="label mono" data-group={g}>{g === 'Code' ? t('プログラム') : g.toUpperCase()}</div>
                     <ul>
                       {FORMATS.filter((f) => f.group === g).map((f) => (
                         <li key={f.label} className={f.ready ? '' : 'pending'}>

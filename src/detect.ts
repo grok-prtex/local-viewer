@@ -7,7 +7,7 @@ export type FormatKind =
 export interface FormatInfo {
   kind: FormatKind;
   label: string;
-  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive' | 'Text';
+  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive' | 'Text' | 'Code';
   exts: string[];
   ready: boolean;
 }
@@ -20,7 +20,7 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite（閲覧のみ）', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
   { kind: 'access', label: 'Access（閲覧のみ）', group: 'Office', exts: ['mdb', 'accdb'], ready: true },
-  { kind: 'joblib', label: 'joblib / pickle（メタ情報のみ）', group: 'Office', exts: ['joblib', 'pkl', 'pickle'], ready: true },
+  { kind: 'joblib', label: 'joblib / pickle', group: 'Office', exts: ['joblib', 'pkl', 'pickle'], ready: true },
   { kind: 'eml', label: 'EML', group: 'Mail', exts: ['eml'], ready: true },
   { kind: 'msg', label: 'Outlook MSG', group: 'Mail', exts: ['msg'], ready: true },
   { kind: 'dxf', label: 'DXF', group: 'CAD', exts: ['dxf'], ready: true },
@@ -32,9 +32,9 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'text', label: 'Markdown（整形表示）', group: 'Text', exts: ['md'], ready: true },
   { kind: 'text', label: 'JSON / XML / YAML', group: 'Text', exts: ['json', 'xml', 'yaml', 'yml'], ready: true },
   { kind: 'text', label: 'HTML（安全な枠内で表示）', group: 'Text', exts: ['html', 'htm'], ready: true },
-  { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Text', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
-  { kind: 'ipynb', label: 'Jupyter ノートブック', group: 'Text', exts: ['ipynb'], ready: true },
-  { kind: 'text', label: 'ソースコード', group: 'Text', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
+  { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Code', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
+  { kind: 'ipynb', label: 'Jupyter ノートブック', group: 'Code', exts: ['ipynb'], ready: true },
+  { kind: 'text', label: 'ソースコード', group: 'Code', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
   { kind: 'image', label: 'HEIC / HEIF', group: 'Image', exts: ['heic', 'heif'], ready: true },

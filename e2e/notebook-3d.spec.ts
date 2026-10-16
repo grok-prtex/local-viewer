@@ -11,7 +11,13 @@ test.describe('Jupyter ノートブック', () => {
   test('セル表示・出力・安全性・JSON 切替（PC）', async ({ page, baseURL }) => {
     const ext: string[] = []; page.on('request', (r) => { const u = r.url(); if (!u.startsWith(baseURL!) && !u.startsWith('data:') && !u.startsWith('blob:')) ext.push(u); });
     await page.goto('/');
-    await expect(page.locator('section.formats')).toContainText('Jupyter ノートブック');
+    const code = page.locator('section.formats .group').filter({ has: page.locator('[data-group="Code"]') });
+    await expect(code.locator('.label')).toHaveText('プログラム');
+    await expect(code).toContainText('Jupyter ノートブック'); await expect(code).toContainText('ソースコード');
+    await expect(page.locator('section.formats .group').filter({ has: page.locator('[data-group="Office"]') })).not.toContainText('Jupyter');
+    await expect(page.locator('section.formats')).not.toContainText('メタ情報のみ');
+    await expect(page.locator('section.formats')).toContainText('joblib / pickle');
+    await page.locator('section.formats').screenshot({ path: `${SHOTS}/home-formats.png` });
     await page.getByTestId('file-input').setInputFiles(NB);
     const nb = page.getByTestId('notebook');
     await expect(nb.getByTestId('nb-code').first()).toBeVisible();
