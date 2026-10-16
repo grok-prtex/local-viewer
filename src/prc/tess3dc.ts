@@ -53,8 +53,10 @@ function orthoOf(X: number[]): [number[], number[]] {
   const Y = unit(cross(Z, X2)) ?? [0, 1, 0];
   return [Y, Z];
 }
-function sinT(x: number) { const x2 = x * x; return x * (1 - x2 * (1 / 6 - x2 * (1 / 120 - x2 * (1 / 5040)))); }
-function cosT(x: number) { const x2 = x * x; return 1 - x2 * (1 / 2 - x2 * (1 / 24 - x2 * (1 / 720))); }
+// 仕様の Taylor 近似。π/4 を超える角は余角に置き換えて精度を保つ（π/2 で cos がちょうど 0 になる）
+const HALF_PI = Math.PI / 2, QUARTER_PI = Math.PI / 4;
+function sinT(x: number): number { return x > QUARTER_PI ? cosT(HALF_PI - x) : x - (x * x * x) / 6.0 + (x * x * x * x * x) / 120.0 - (x * x * x * x * x * x * x) / 5040.0; }
+function cosT(x: number): number { return x > QUARTER_PI ? sinT(HALF_PI - x) : 1.0 - (x * x) / 2.0 + (x * x * x * x) / 24.0 - (x * x * x * x * x * x) / 720.0; }
 /** n を表すのに要るビット数（最低 1） */
 const bitsFor = (n: number) => { let b = 1, t = 1; while (n > t) { t *= 2; b++; } return b; };
 
@@ -95,7 +97,13 @@ export function decodeOnce(c: any, flips: Set<number> | null, ambiguous: number[
   function nextNormal(tri: number[][]): number {
     const rt = bit(), rx = bit(), ry = bit();
     const v1 = unit(sub(tri[1], tri[0])) ?? [1, 0, 0], v2 = unit(sub(tri[2], tri[0])) ?? [0, 1, 0], v3 = unit(sub(tri[2], tri[1])) ?? [0, 0, 1];
-    const off = (a: number[], b: number[]) => Math.abs(Math.acos(Math.max(-1, Math.min(1, dot(a, b)))) - Math.PI / 2);
+    // 2 本の向きの直角からのずれ。ほぼ平行（|内積| > 1−1e-12）なら直角扱い（π/2）にする。
+    // ほぼ一直線の三角形では 3 つとも π/2 ちょうどになり、どの軸を使うかがこれで決まる
+    const off = (a0: number[], b0: number[]) => {
+      const a = unit(a0) ?? a0, b = unit(b0) ?? b0; const d = dot(a, b);
+      if (d > 1 - 1e-12 || d < -1 + 1e-12) return Math.PI / 2;
+      return Math.abs(Math.abs(Math.acos(d)) - Math.PI / 2);
+    };
     const th1 = off(v1, v2), th2 = off(v3, neg(v1)), th3 = off(neg(v2), neg(v3));
     let X: number[], Zr: number[];
     if (th1 < th2 && th1 < th3) { X = v1; Zr = cross(v1, v2); }
