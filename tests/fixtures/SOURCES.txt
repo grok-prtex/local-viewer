@@ -9,3 +9,4 @@ styled.xlsx: 見積書 sample generated with ExcelJS for tests, CC0.
 sample.sqlite: handwritten SQLite for tests, CC0.
 sample*.joblib: generated with joblib for tests, CC0.
 sample.mdb / sample.accdb: from andipaetzold/mdb-reader test fixtures (MIT).
+sample.SLDPRT: 512-byte OLE header stub (no content), CC0. Used to confirm SolidWorks is unsupported (2026-10-16).

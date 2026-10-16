@@ -13,7 +13,6 @@ const SheetViewer = lazy(() => import('./viewers/SheetViewer'));
 const ZipViewer = lazy(() => import('./viewers/ZipViewer'));
 const ImageViewer = lazy(() => import('./viewers/ImageViewer'));
 const MediaViewer = lazy(() => import('./viewers/MediaViewer'));
-const CadInfoViewer = lazy(() => import('./viewers/CadInfoViewer'));
 const TextViewer = lazy(() => import('./viewers/TextViewer'));
 const SqlViewer = lazy(() => import('./viewers/SqlViewer'));
 const JoblibViewer = lazy(() => import('./viewers/JoblibViewer'));
@@ -172,7 +171,6 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'sqlite': return <SqlViewer file={file} />;
     case 'joblib': return <JoblibViewer file={file} />;
     case 'access': return <AccessViewer file={file} />;
-    case 'sw': return <CadInfoViewer file={file} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
     case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
     case 'dwg': return <ErrorBox>DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。</ErrorBox>;

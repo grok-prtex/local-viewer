@@ -250,6 +250,16 @@ test('Parasolid is unsupported', async ({ page }) => {
   await expect(page.getByTestId('ps-info')).toHaveCount(0);
 });
 
+test('SolidWorks is unsupported', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.SLDPRT');
+  await expect(page.getByText(/まだ対応していません/)).toBeVisible();
+  await expect(page.getByTestId('sw-preview')).toHaveCount(0);
+  await page.getByTestId('clear').click();
+  await expect(page.locator('section.formats')).toBeVisible();
+  await expect(page.locator('section.formats')).not.toContainText(/SolidWorks|sldprt|sldasm/i);
+});
+
 test('progress UI and cancel for STEP', async ({ page }) => {
   await page.goto('/');
   await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.step');
