@@ -30,7 +30,6 @@ test('日本語ヘッダーが文字化けせず、宛名は名前だけ・ポ�
   await pop.getByRole('button', { name: 'コピー' }).click();
   await expect(pop.getByRole('button', { name: 'コピーしました' })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText()).catch(() => 'taro.yamada@example.co.jp')).toBe('taro.yamada@example.co.jp');
-  if (SHOTS) await page.screenshot({ path: `${SHOTS}/mail-jp-popover.png`, fullPage: true });
   // Esc で閉じてフォーカスを戻す → キーボードで開く
   await page.keyboard.press('Escape');
   await expect(pop).toHaveCount(0);
@@ -40,6 +39,14 @@ test('日本語ヘッダーが文字化けせず、宛名は名前だけ・ポ�
   await expect(page.getByTestId('person-pop')).toContainText('hanako@example.jp');
   await page.mouse.click(5, 5);
   await expect(page.getByTestId('person-pop')).toHaveCount(0);
+  // 長いアドレス：PC 幅では 1 行のまま、画面内に収まる
+  await page.getByTestId('mail-cc').getByTestId('person').first().click();
+  const lp = page.getByTestId('person-pop');
+  await expect(lp).toContainText('very.long.mailbox.name.for.testing.wrap@subdomain.example-corporation.co.jp');
+  const g = await lp.evaluate((el) => { const a = el.querySelector('.pop-addr')!; const r = el.getBoundingClientRect(); return { lines: Math.round(a.getBoundingClientRect().height / parseFloat(getComputedStyle(a).lineHeight || '20')), right: r.right, left: r.left, vw: document.documentElement.clientWidth }; });
+  expect(g.lines).toBe(1);
+  expect(g.right).toBeLessThanOrEqual(g.vw); expect(g.left).toBeGreaterThanOrEqual(0);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/mail-jp-popover.png`, fullPage: true });
 });
 
 test('生 Shift_JIS / 生 ISO-2022-JP ヘッダー', async ({ page }) => {
@@ -67,6 +74,14 @@ test.describe('スマホ幅', () => {
     await expect(pop).toContainText('hanako@example.jp');
     const box = (await pop.boundingBox())!;
     expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+    await page.mouse.click(5, 5);
+    await page.getByTestId('mail-cc').getByTestId('person').first().tap();
+    const lp = page.getByTestId('person-pop');
+    await expect(lp).toContainText('subdomain.example-corporation.co.jp');
+    const b2 = (await lp.boundingBox())!;
+    expect(b2.x).toBeGreaterThanOrEqual(0);
+    expect(b2.x + b2.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     if (SHOTS) await page.screenshot({ path: `${SHOTS}/mail-jp-mobile-popover.png` });
   });
 });

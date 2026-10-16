@@ -66,7 +66,7 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .mail-head dd { margin: 0; word-break: break-word; min-width: 0; }
 .people { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-2); align-items: center; }
 .person { position: relative; display: inline-flex; max-width: 100%; }
-.person-chip { all: unset; box-sizing: border-box; cursor: pointer; display: inline-flex; align-items: baseline; gap: var(--sp-1); max-width: 100%;
+.person-chip { all: unset; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; cursor: pointer; display: inline-flex; align-items: baseline; gap: var(--sp-1); max-width: 100%;
   padding: 1px var(--sp-2); border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: var(--fs-body); line-height: 1.6; }
 .person-chip:hover { border-color: var(--line-strong); }
 .person-chip:focus-visible { box-shadow: var(--focus-ring); border-color: var(--focus); }
@@ -74,10 +74,13 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .person-domain { font-size: var(--fs-micro); color: var(--ink-3); }
 .person-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: flex; flex-direction: column; gap: var(--sp-1);
-  min-width: 220px; max-width: min(340px, calc(100vw - 32px)); padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line-2);
+  width: max-content; min-width: 200px; max-width: calc(100vw - 32px); padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: var(--r-lg); box-shadow: var(--sh-3); }
   border-radius: var(--r-lg); box-shadow: 0 6px 24px rgba(21, 23, 26, 0.12); }
 .pop-name { font-weight: var(--w-semibold); }
-.pop-addr { font-size: var(--fs-sm); color: var(--ink-2); word-break: break-all; user-select: all; }
+.pop-addr { font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; user-select: all; }
+/* 画面に収まらないときだけ折り返す（@ の前後を優先、最後の手段で任意の位置） */
+.pop-addr.wrap { white-space: normal; overflow-wrap: anywhere; }
 .pop-copy { align-self: flex-start; margin-top: var(--sp-1); }
 .people-more { all: unset; cursor: pointer; font-size: var(--fs-sm); color: var(--ink-2); text-decoration: underline; text-underline-offset: 3px; padding: 1px var(--sp-1); border-radius: var(--r-xs); }
 .people-more:focus-visible { box-shadow: var(--focus-ring); }

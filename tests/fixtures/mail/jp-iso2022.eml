@@ -2,7 +2,8 @@ From: =?iso-2022-jp?B?GyRCOzNFRBsoQiAbJEJCQE86GyhC?= <taro.yamada@example.co.jp>
 To: =?iso-2022-jp?B?GyRCOjRGIxsoQiAbJEIyVjtSGyhC?= <hanako@example.jp>, "Suzuki, Ichiro" <ichiro@example.jp>,
  plain@example.com, =?UTF-8?Q?=E7=94=B0=E4=B8=AD=20=E9=83=A8=E9=95=B7?= <tanaka@example.jp>,
  =?iso-2022-jp?B?GyRCOjRGIxsoQiAbJEIyVjtSGyhC?= <hanako@other.co.jp>, a2@example.com, a3@example.com
-Cc: =?iso-2022-jp?B?GyRCN1BNfUl0GyhC?= <keiri@example.jp>
+Cc: =?iso-2022-jp?B?GyRCRDkkJCUiJUklbCU5JE4/TRsoQg==?= <very.long.mailbox.name.for.testing.wrap@subdomain.example-corporation.co.jp>,
+ =?iso-2022-jp?B?GyRCN1BNfUl0GyhC?= <keiri@example.jp>
 Subject: =?iso-2022-jp?B?GyRCIVo9RU1XIVskKjgrQFEkaiRON28kSyREJCQkRhsoQg==?=
  =?iso-2022-jp?B?GyRCIUpCaCMyMnMhJkQ5JCQ3b0w+JE5AXiRqSlYkNzNORychSxsoQg==?=
 Date: Fri, 16 Oct 2026 10:00:00 +0900

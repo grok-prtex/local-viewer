@@ -11,7 +11,7 @@ describe('メールヘッダーの日本語', () => {
     expect(h.from).toEqual([{ name: '山田 太郎', address: 'taro.yamada@example.co.jp' }]);
     expect(h.to.map((a) => a.name)).toEqual(['佐藤 花子', 'Suzuki, Ichiro', '', '田中 部長', '佐藤 花子', '', '']);
     expect(h.to[2].address).toBe('plain@example.com');
-    expect(h.cc).toEqual([{ name: '経理部', address: 'keiri@example.jp' }]);
+    expect(h.cc).toEqual([{ name: '長いアドレスの人', address: 'very.long.mailbox.name.for.testing.wrap@subdomain.example-corporation.co.jp' }, { name: '経理部', address: 'keiri@example.jp' }]);
   });
   it('生 8bit の Shift_JIS ヘッダー', () => {
     const h = readMailHeaders(fx('jp-sjis-raw.eml'));

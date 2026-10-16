@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { MailAddr } from '../mailHeaders';
 
 const SHOW = 5;
@@ -9,7 +9,22 @@ function Person({ a, showDomain }: { a: MailAddr; showDomain: boolean }) {
   const [copied, setCopied] = useState(false);
   const wrap = useRef<HTMLSpanElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
+  const pop = useRef<HTMLSpanElement>(null);
+  const [wrapAddr, setWrapAddr] = useState(false);
   const id = useId();
+  // 画面からはみ出す分だけ左へずらし、それでも入らなければ折り返す
+  useLayoutEffect(() => {
+    const el = pop.current; if (!open || !el) return;
+    el.style.left = '0px'; setWrapAddr(false);
+    const fit = () => {
+      const vw = document.documentElement.clientWidth; const r = el.getBoundingClientRect();
+      if (r.right > vw - 16) el.style.left = `${Math.min(0, vw - 16 - r.right)}px`;
+      if (el.getBoundingClientRect().left < 16) el.style.left = `${16 - (r.left)}px`;
+    };
+    fit();
+    const addr = el.querySelector('.pop-addr') as HTMLElement | null;
+    if (addr && addr.scrollWidth > addr.clientWidth + 1) { setWrapAddr(true); requestAnimationFrame(fit); }
+  }, [open]);
   useEffect(() => {
     if (!open) return;
     const onDown = (e: PointerEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(false); };
@@ -30,9 +45,9 @@ function Person({ a, showDomain }: { a: MailAddr; showDomain: boolean }) {
         {showDomain && a.name && domain(a.address) && <span className="person-domain mono">@{domain(a.address)}</span>}
       </button>
       {open && (
-        <span className="person-pop" role="dialog" id={id} aria-label={`${label} の連絡先`} data-testid="person-pop">
+        <span ref={pop} className="person-pop" role="dialog" id={id} aria-label={`${label} の連絡先`} data-testid="person-pop">
           {a.name && <span className="pop-name">{a.name}</span>}
-          <span className="pop-addr mono">{a.address || '（アドレスなし）'}</span>
+          <span className={'pop-addr mono' + (wrapAddr ? ' wrap' : '')}>{a.address ? <>{a.address.split('@')[0]}<wbr />@<wbr />{a.address.split('@').slice(1).join('@')}</> : '（アドレスなし）'}</span>
           {a.address && <button type="button" className="pop-copy" onClick={copy} autoFocus>{copied ? 'コピーしました' : 'コピー'}</button>}
         </span>
       )}
