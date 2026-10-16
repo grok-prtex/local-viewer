@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { renderAsync } from 'docx-preview';
 import { Loading, ErrorBox } from '../ui';
+import { t } from '../i18n';
 
 export default function DocxViewer({ file }: { file: File }) {
   const host = useRef<HTMLDivElement>(null);
@@ -13,10 +14,10 @@ export default function DocxViewer({ file }: { file: File }) {
   }, [file]);
   return (
     <div>
-      {state === 'loading' && <Loading>文書を読み込んでいます</Loading>}
-      {state === 'err' && <ErrorBox>Word 文書を読み込めませんでした。古い DOC 形式には、現在は対応していません。</ErrorBox>}
+      {state === 'loading' && <Loading>{t('文書を読み込んでいます')}</Loading>}
+      {state === 'err' && <ErrorBox>{t('Word 文書を読み込めませんでした。古い DOC 形式には、現在は対応していません。')}</ErrorBox>}
       <div className="docx" ref={host} data-testid="docx" />
-      {state === 'ok' && <p className="hint">レイアウトは Word と完全には一致しない場合があります。</p>}
+      {state === 'ok' && <p className="hint">{t('レイアウトは Word と完全には一致しない場合があります。')}</p>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { t } from './i18n';
 /** テキスト系ファイルの判定・文字コード推定・言語の対応表 */
 
 /** 拡張子 → highlight.js の言語名（'' はハイライトなし） */
@@ -35,7 +36,7 @@ export function looksText(head: Uint8Array): boolean {
 
 /** 文字コードを推定して文字列にします（UTF-8 / UTF-16 / Shift_JIS / EUC-JP） */
 export function decodeText(b: Uint8Array): { text: string; encoding: string } {
-  if (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) return { text: new TextDecoder('utf-8').decode(b.subarray(3)), encoding: 'UTF-8（BOM 付き）' };
+  if (b[0] === 0xef && b[1] === 0xbb && b[2] === 0xbf) return { text: new TextDecoder('utf-8').decode(b.subarray(3)), encoding: t('UTF-8（BOM 付き）') };
   if (b[0] === 0xff && b[1] === 0xfe) return { text: new TextDecoder('utf-16le').decode(b.subarray(2)), encoding: 'UTF-16LE' };
   if (b[0] === 0xfe && b[1] === 0xff) return { text: new TextDecoder('utf-16be').decode(b.subarray(2)), encoding: 'UTF-16BE' };
   // BOM なし UTF-16 の目安：偶数／奇数バイトの片側に NUL が多い

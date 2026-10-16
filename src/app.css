@@ -55,7 +55,7 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .pdf-pages { display: flex; flex-direction: column; align-items: center; gap: var(--sp-4); background: var(--paper-2); padding: var(--sp-4); border-radius: var(--r-md); overflow: auto; max-height: 78vh; }
 .pdf-page { background: #fff; box-shadow: var(--sh-2); max-width: none; }
 
-.three-host { width: 100%; height: 66vh; min-height: 320px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); touch-action: none; }
+.three-host { position: relative; width: 100%; height: 66vh; min-height: 320px; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--line); touch-action: none; }
 .dxf-layout { display: grid; grid-template-columns: 1fr 220px; gap: var(--sp-3); }
 .layers { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3); max-height: 66vh; overflow: auto; font-size: var(--fs-sm); }
 .layers label { display: flex; gap: 6px; align-items: center; padding: 2px 0; word-break: break-all; }

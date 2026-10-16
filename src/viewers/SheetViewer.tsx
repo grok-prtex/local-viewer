@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { decodeCsv } from './csv';
+import { t } from '../i18n';
 
 interface Cell { c: number; v: string; bg: string | null; fg: string | null; b: boolean; i: boolean; u: boolean; sz: number | null; ha: string | null; va: string | null; wrap: boolean; bt: string | null; bb: string | null; bl: string | null; br: string | null; }
 interface Row { h: number; hidden: boolean; cells: Cell[]; }
@@ -55,7 +56,7 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
         : xls ? plainSheets(XLSX.read(buf, { type: 'array', cellDates: true }))
         : await runXlsx(buf, job.current);
       if (alive) { setSheets(s); setCur(0); setShown(VIS); }
-    })().catch((e) => { if (!alive) return; if (String(e?.message) === 'cancelled') setErr('読み込みをキャンセルしました。'); else setErr('表を読み込めませんでした。パスワード付きのファイルは開けません。'); });
+    })().catch((e) => { if (!alive) return; if (String(e?.message) === 'cancelled') setErr(t('読み込みをキャンセルしました。')); else setErr(t('表を読み込めませんでした。パスワード付きのファイルは開けません。')); });
     return () => { alive = false; job.current.cancel?.(); };
   }, [file, csv, xls]);
 
@@ -90,8 +91,8 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
           </tbody>
         </table>
       </div>
-      {ws.rows.length > shown && <p className="hint">全 {ws.rows.length.toLocaleString()} 行のうち {shown.toLocaleString()} 行を表示しています。<button onClick={() => setShown((n) => n + VIS * 2)} data-testid="more-rows">さらに表示</button></p>}
-      <p className="hint">{xls ? 'XLS（古い形式）は値のみの表示です。' : csv ? 'CSV は値のみの表示です。' : 'グラフ・画像・マクロは表示しません。方眼紙のような帳票では列幅や結合の見え方が Excel と違うことがあります。'}{ws.freeze ? ` ウィンドウ枠の固定（${ws.freeze.y} 行・${ws.freeze.x} 列）は表示のみで、スクロール固定はしません。` : ''}</p>
+      {ws.rows.length > shown && <p className="hint">{t('全 {0} 行のうち {1} 行を表示しています。', ws.rows.length.toLocaleString(), shown.toLocaleString())}<button onClick={() => setShown((n) => n + VIS * 2)} data-testid="more-rows">{t('さらに表示')}</button></p>}
+      <p className="hint">{xls ? t('XLS（古い形式）は値のみの表示です。') : csv ? t('CSV は値のみの表示です。') : t('グラフ・画像・マクロは表示しません。方眼紙のような帳票では列幅や結合の見え方が Excel と違うことがあります。')}{ws.freeze ? t(' ウィンドウ枠の固定（{0} 行・{1} 列）は表示のみで、スクロール固定はしません。', ws.freeze.y, ws.freeze.x) : ''}</p>
     </div>
   );
 }

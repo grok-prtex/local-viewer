@@ -3,6 +3,7 @@ import JSZip from 'jszip';
 import { size } from './Mail';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
+import { t } from '../i18n';
 
 export default function ZipViewer({ file, onOpen, canOpenName }: { file: File; onOpen: (f: File) => void; canOpenName: (n: string) => boolean }) {
   const [zip, setZip] = useState<JSZip | null>(null);
@@ -12,15 +13,15 @@ export default function ZipViewer({ file, onOpen, canOpenName }: { file: File; o
   useEffect(() => {
     let alive = true;
     const st = ['読み込み中', '解析中'] as const;
-    readWithProgress(file, (pct) => alive && setProg({ stage: '読み込み中', pct, stages: st })).then((buf) => { if (alive) setProg({ stage: '解析中', detail: '目次を読んでいます', stages: st }); return JSZip.loadAsync(buf, { decodeFileName: (b) => {
+    readWithProgress(file, (pct) => alive && setProg({ stage: '読み込み中', pct, stages: st })).then((buf) => { if (alive) setProg({ stage: '解析中', detail: t('目次を読んでいます'), stages: st }); return JSZip.loadAsync(buf, { decodeFileName: (b) => {
       const u = b as Uint8Array;
       try { return new TextDecoder('utf-8', { fatal: true }).decode(u); } catch { return new TextDecoder('shift_jis').decode(u); }
-    } }); }).then((z) => alive && setZip(z)).catch(() => alive && setErr('ZIP を読み込めませんでした。パスワード付きの ZIP は、現在は開けません。'));
+    } }); }).then((z) => alive && setZip(z)).catch(() => alive && setErr(t('ZIP を読み込めませんでした。パスワード付きの ZIP は、現在は開けません。')));
     return () => { alive = false; };
   }, [file]);
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!zip) return <Progress p={prog} />;
-  if (ext) return <Progress p={{ stage: '解析中', pct: ext.pct, detail: `${ext.name} を取り出しています`, stages: ['読み込み中', '解析中'] }} />;
+  if (ext) return <Progress p={{ stage: '解析中', pct: ext.pct, detail: t('{0} を取り出しています', ext.name), stages: ['読み込み中', '解析中'] }} />;
   const files = Object.values(zip.files).filter((f) => !f.dir && !f.name.startsWith('__MACOSX/'));
   const open = async (name: string) => {
     setExt({ name: name.split('/').pop() || name, pct: 0 });
@@ -47,8 +48,8 @@ export default function ZipViewer({ file, onOpen, canOpenName }: { file: File; o
       <li key={f.name}>
         <span className="att-name">{f.name.split('/').pop()}</span>
         {sz != null && <span className="mono att-size">{size(sz)}</span>}
-        {canOpenName(f.name) && <button onClick={() => open(f.name)}>開く</button>}
-        <button className="ghost" onClick={() => save(f.name)}>保存</button>
+        {canOpenName(f.name) && <button onClick={() => open(f.name)}>{t('開く')}</button>}
+        <button className="ghost" onClick={() => save(f.name)}>{t('保存')}</button>
       </li>
     );
   };

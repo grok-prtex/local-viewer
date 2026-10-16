@@ -1,3 +1,4 @@
+import { t } from './i18n';
 /**
  * pickle / joblib を「実行せず」に眺めます。
  * REDUCE / BUILD / INST / OBJ はクラスを呼び出さないため、中身の復元はしません。
@@ -114,11 +115,11 @@ export function scanPickle(bytes: Uint8Array, compression: PickleScan['compressi
       case 0x98: /* BYTEARRAY8? */ break;
       default:
         // 未知のオペコードはそこで止め、読めた範囲だけ返します
-        return finish(`未知のオペコード 0x${op.toString(16)}（位置 ${i - 1}）で読み取りを止めました。`);
+        return finish(t('未知のオペコード 0x{0}（位置 {1}）で読み取りを止めました。', op.toString(16), i - 1));
     }
-    if (ops > 200000) return finish('オペコードが多すぎるため、途中までを表示しています。');
+    if (ops > 200000) return finish(t('オペコードが多すぎるため、途中までを表示しています。'));
   }
-  return finish('STOP に達する前にデータが終わりました。');
+  return finish(t('STOP に達する前にデータが終わりました。'));
 
   function finish(extra = ''): PickleScan {
     // STACK_GLOBAL 用：連続する短い文字列のペアを型名候補にします（実行はしません）
@@ -131,8 +132,8 @@ export function scanPickle(bytes: Uint8Array, compression: PickleScan['compressi
       protocol, compression, globals: [...globals].sort(), strings: strings.slice(0, 60), numbers: numbers.slice(0, 30),
       hasUnsafeOps, ops,
       note: (hasUnsafeOps
-        ? 'このファイルはクラスを復元する命令を含みます。ブラウザでは安全のため実行しません。'
-        : '基本的な辞書・リスト・文字列だけの構造に見えます。それでも実行による復元はしません。') + (extra ? ' ' + extra : ''),
+        ? t('このファイルはクラスを復元する命令を含みます。ブラウザでは安全のため実行しません。')
+        : t('基本的な辞書・リスト・文字列だけの構造に見えます。それでも実行による復元はしません。')) + (extra ? ' ' + extra : ''),
     };
   }
 }

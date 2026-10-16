@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import MDBReader from 'mdb-reader';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
+import { t } from '../i18n';
 
 const PAGE = 100;
 
 function cell(v: unknown): string {
   if (v == null) return 'NULL';
   if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toLocaleString('ja-JP');
-  if (typeof ArrayBuffer !== 'undefined' && v instanceof ArrayBuffer) return `バイナリ（${v.byteLength} バイト）`;
-  if (v instanceof Uint8Array) return `バイナリ（${v.length} バイト）`;
+  if (typeof ArrayBuffer !== 'undefined' && v instanceof ArrayBuffer) return t('バイナリ（{0} バイト）', v.byteLength);
+  if (v instanceof Uint8Array) return t('バイナリ（{0} バイト）', v.length);
   if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
   if (typeof v === 'object') { try { return JSON.stringify(v); } catch { return String(v); } }
   return String(v);
@@ -39,7 +40,7 @@ export default function AccessViewer({ file }: { file: File }) {
       const names = reader.getTableNames({ normalTables: true, systemTables: false, linkedTables: true });
       setTables(names);
       setCur(names[0] || '');
-    })().catch(() => alive && setErr('Access データベースを開けませんでした。パスワード付きや未対応の形式の可能性があります。'));
+    })().catch(() => alive && setErr(t('Access データベースを開けませんでした。パスワード付きや未対応の形式の可能性があります。')));
     return () => { alive = false; readerRef.current = null; };
   }, [file]);
 
@@ -76,7 +77,7 @@ export default function AccessViewer({ file }: { file: File }) {
               <li key={n}>
                 <button className={cur === n ? 'on' : ''} onClick={() => setCur(n)} title={n}>
                   <span className="tname">{n}</span>
-                  <span className="mono">{counts[n] != null ? `${counts[n]} 行` : ''}</span>
+                  <span className="mono">{counts[n] != null ? t('{0} 行', counts[n]) : ''}</span>
                 </button>
               </li>
             ))}
@@ -89,7 +90,7 @@ export default function AccessViewer({ file }: { file: File }) {
               setTables(names);
               if (!names.includes(cur)) setCur(names[0] || '');
             }} />
-            システム表も表示
+            {t('システム表も表示')}
           </label>
         </aside>
         <div>
@@ -105,14 +106,14 @@ export default function AccessViewer({ file }: { file: File }) {
           </div>
           {rows.length > PAGE && (
             <div className="toolbar">
-              <button disabled={off === 0} onClick={() => setOff(Math.max(0, off - PAGE))}>前へ</button>
+              <button disabled={off === 0} onClick={() => setOff(Math.max(0, off - PAGE))}>{t('前へ')}</button>
               <span className="mono">{off + 1}–{Math.min(off + PAGE, rows.length)} / {rows.length}</span>
-              <button disabled={off + PAGE >= rows.length} onClick={() => setOff(off + PAGE)}>次へ</button>
+              <button disabled={off + PAGE >= rows.length} onClick={() => setOff(off + PAGE)}>{t('次へ')}</button>
             </div>
           )}
         </div>
       </div>
-      <p className="hint">Access（MDB / ACCDB）は閲覧のみです。クエリ・フォーム・レポート・マクロは表示しません。大きな表はページ送りします。</p>
+      <p className="hint">{t('Access（MDB / ACCDB）は閲覧のみです。クエリ・フォーム・レポート・マクロは表示しません。大きな表はページ送りします。')}</p>
     </div>
   );
 }

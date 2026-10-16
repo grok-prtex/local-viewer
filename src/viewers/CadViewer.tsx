@@ -5,6 +5,7 @@ import ThreeView, { material } from './ThreeView';
 import ModelTree, { type TreeNode } from './ModelTree';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, nextFrame, type ProgressState } from '../progress';
+import { t } from '../i18n';
 
 interface FaceColor { first: number; last: number; color: number[] | null; }
 interface WorkerMesh { name: string; position: Float32Array; normal: Float32Array | null; index: Uint32Array; color: number[] | null; faceColors: FaceColor[] | null; }
@@ -17,7 +18,7 @@ function runOcct(w: Worker, kind: 'step' | 'iges', buffer: ArrayBuffer, onStage:
   return new Promise((resolve, reject) => {
     job.cancel = () => { w.terminate(); reject(new Error('cancelled')); };
     w.onmessage = (e) => {
-      if (e.data.type === 'progress') { onStage({ stage: '解析中', detail: 'OpenCascade で形状を計算しています' }); return; }
+      if (e.data.type === 'progress') { onStage({ stage: '解析中', detail: t('OpenCascade で形状を計算しています') }); return; }
       w.terminate(); e.data.ok ? resolve(e.data) : reject(new Error(e.data.error));
     };
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
@@ -83,20 +84,20 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
           root = tn;
         } else group.add(new THREE.Mesh(g, material()));
       } else {
-        set({ stage: '解析中', detail: 'WebAssembly を準備しています' });
+        set({ stage: '解析中', detail: t('WebAssembly を準備しています') });
         const r = await runOcct(pre!, kind, buf, set, j);
         if (!r.meshes.length) throw new Error('empty');
         const built: THREE.Mesh[] = [];
         for (let i = 0; i < r.meshes.length; i++) {
           if (j.cancelled) throw new Error('cancelled');
           built.push(buildMesh(r.meshes[i]));
-          if (i % 100 === 99) { set({ stage: '形状変換中', pct: (i / r.meshes.length) * 100, detail: `${i + 1} / ${r.meshes.length} 部品` }); await nextFrame(); }
+          if (i % 100 === 99) { set({ stage: '形状変換中', pct: (i / r.meshes.length) * 100, detail: t('{0} / {1} 部品', i + 1, r.meshes.length) }); await nextFrame(); }
         }
         // 部品の階層（アセンブリ構造）を Three.js のグループに写します
         const toGroup = (n: OcctNode, depth: number): [THREE.Object3D, TreeNode] => {
           const gr = new THREE.Group(); gr.name = n.name;
-          const tn: TreeNode = { name: n.name || '（名前なし）', obj: gr, children: [] };
-          for (const mi of n.meshes) { const m = built[mi]; if (!m) continue; m.name = r.meshes[mi].name; gr.add(m); if (n.children.length || n.meshes.length > 1) tn.children.push({ name: m.name || `形状 ${mi + 1}`, obj: m, children: [] }); }
+          const tn: TreeNode = { name: n.name || t('（名前なし）'), obj: gr, children: [] };
+          for (const mi of n.meshes) { const m = built[mi]; if (!m) continue; m.name = r.meshes[mi].name; gr.add(m); if (n.children.length || n.meshes.length > 1) tn.children.push({ name: m.name || t('形状 {0}', mi + 1), obj: m, children: [] }); }
           if (depth < 40) for (const c of n.children) { const [co, ct] = toGroup(c, depth + 1); gr.add(co); tn.children.push(ct); }
           // 同じ部品が複数あるときは SolidWorks と同じく <1> <2> … を付けます
           const cnt = new Map<string, number>(); for (const c of tn.children) cnt.set(c.name, (cnt.get(c.name) ?? 0) + 1);
@@ -110,13 +111,13 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
       if (alive) { setTree(root && root.children.length ? root : null); setObj(group); }
     })().catch((e) => {
       if (!alive) return;
-      if (String(e?.message) === 'cancelled') setErr('読み込みをキャンセルしました。');
-      else { console.warn('cad load failed', e); setErr('3D モデルを読み込めませんでした。ファイルが壊れているか、対応していない書式の可能性があります。'); }
+      if (String(e?.message) === 'cancelled') setErr(t('読み込みをキャンセルしました。'));
+      else { console.warn('cad load failed', e); setErr(t('3D モデルを読み込めませんでした。ファイルが壊れているか、対応していない書式の可能性があります。')); }
     });
     return () => { alive = false; j.cancelled = true; j.cancel?.(); };
   }, [file, kind]);
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!obj) return <Progress p={prog} onCancel={() => { job.current.cancelled = true; job.current.cancel?.(); setErr('読み込みをキャンセルしました。'); }} />;
+  if (!obj) return <Progress p={prog} onCancel={() => { job.current.cancelled = true; job.current.cancel?.(); setErr(t('読み込みをキャンセルしました。')); }} />;
   return <ThreeView object={obj} side={tree ? <ModelTree root={tree} /> : undefined} />;
 }

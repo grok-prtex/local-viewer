@@ -6,6 +6,7 @@ import { Loading, ErrorBox } from '../ui';
 import { attachZoomGestures } from '../gesture';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { extract3D, type Pdf3D } from '../pdf3d';
+import { t } from '../i18n';
 const Pdf3DView = lazy(() => import('./Pdf3DView'));
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
@@ -36,8 +37,8 @@ export default function PdfViewer({ file }: { file: File }) {
       enableXfa: false,
     }); t.onProgress = ({ loaded, total }: { loaded: number; total: number }) => { if (alive && total) setProg({ stage: '解析中', pct: (loaded / total) * 100, stages: st }); }; return t.promise; }).then((p) => { d = p; if (alive) setDoc(p); })
       .catch((e) => alive && setErr(e?.name === 'PasswordException'
-        ? 'パスワード付きの PDF は、現在は開けません。'
-        : 'PDF を読み込めませんでした。ファイルが壊れている可能性があります。'));
+        ? t('パスワード付きの PDF は、現在は開けません。')
+        : t('PDF を読み込めませんでした。ファイルが壊れている可能性があります。')));
     return () => { alive = false; d?.cleanup(); };
   }, [file]);
 
@@ -113,25 +114,25 @@ export default function PdfViewer({ file }: { file: File }) {
   const switcher = model && (
     <div className="pdf3d-bar">
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={mode === 'pages'} onClick={() => setMode('pages')}>PDF ページ</button>
-        <button role="tab" aria-selected={mode === '3d'} onClick={() => setMode('3d')} data-testid="tab-3d">3D モデル</button>
+        <button role="tab" aria-selected={mode === 'pages'} onClick={() => setMode('pages')}>{t('PDF ページ')}</button>
+        <button role="tab" aria-selected={mode === '3d'} onClick={() => setMode('3d')} data-testid="tab-3d">{t('3D モデル')}</button>
       </div>
-      <span className="hint-inline">{model.kind === 'U3D' ? 'この PDF には 3D モデル（U3D 形式）が含まれています。' : 'この3DPDF（PRC形式）はまだ未対応です。ページは表示できます。'}</span>
+      <span className="hint-inline">{model.kind === 'U3D' ? t('この PDF には 3D モデル（U3D 形式）が含まれています。') : t('この3DPDF（PRC形式）はまだ未対応です。ページは表示できます。')}</span>
     </div>
   );
   if (model && mode === '3d') return (
-    <div>{switcher}<Suspense fallback={<Loading>表示の準備をしています</Loading>}><Pdf3DView model={model} /></Suspense></div>
+    <div>{switcher}<Suspense fallback={<Loading>{t('表示の準備をしています')}</Loading>}><Pdf3DView model={model} /></Suspense></div>
   );
   return (
     <div>
       {switcher}
       <div className="toolbar">
-        <span className="mono">{doc.numPages} ページ</span>
-        {rendered < Math.min(doc.numPages, 1) ? <span className="mono" data-testid="pdf-render">描画中…</span> : <span className="mono hint" data-testid="pdf-render">描画済み {rendered} / {doc.numPages}</span>}
-        <button onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}>縮小</button>
+        <span className="mono">{doc.numPages} {t('ページ')}</span>
+        {rendered < Math.min(doc.numPages, 1) ? <span className="mono" data-testid="pdf-render">{t('描画中…')}</span> : <span className="mono hint" data-testid="pdf-render">{t('描画済み {0} / {1}', rendered, doc.numPages)}</span>}
+        <button onClick={() => setZoom((z) => Math.max(0.25, z / 1.25))}>{t('縮小')}</button>
         <span className="mono">{Math.round(zoom * 100)}%</span>
-        <button onClick={() => setZoom((z) => Math.min(5, z * 1.25))}>拡大</button>
-        <button onClick={() => setZoom(1)}>幅に合わせる</button>
+        <button onClick={() => setZoom((z) => Math.min(5, z * 1.25))}>{t('拡大')}</button>
+        <button onClick={() => setZoom(1)}>{t('幅に合わせる')}</button>
       </div>
       <div className="pdf-pages" ref={host} data-testid="pdf-pages" />
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from './i18n';
 
 /** 読み込み → 解析 → 形状変換 → 描画 の段階表示 */
 export const STAGES = ['読み込み中', '解析中', '形状変換中', '描画中'] as const;
@@ -16,16 +17,16 @@ export function Progress({ p, onCancel }: { p: ProgressState; onCancel?: () => v
   return (
     <div className="progress" role="status" aria-live="polite" data-testid="progress" data-stage={p.stage}>
       <ol className="stages">
-        {stages.map((s, i) => <li key={s} className={i < idx ? 'done' : i === idx ? 'current' : ''}>{s}</li>)}
+        {stages.map((s, i) => <li key={s} className={i < idx ? 'done' : i === idx ? 'current' : ''}>{t(s)}</li>)}
       </ol>
       <div className={'bar' + (pct == null ? ' indeterminate' : '')} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined}>
         <span style={pct == null ? undefined : { width: pct + '%' }} />
       </div>
       <div className="progress-meta">
-        <span>{p.stage}{pct != null ? `　${Math.round(pct)}%` : ''}{p.detail ? `　${p.detail}` : ''}</span>
-        <span className="mono">{sec < 60 ? `${sec.toFixed(1)} 秒` : `${Math.floor(sec / 60)} 分 ${Math.floor(sec % 60)} 秒`}</span>
+        <span>{t(p.stage)}{pct != null ? `　${Math.round(pct)}%` : ''}{p.detail ? `　${p.detail}` : ''}</span>
+        <span className="mono">{sec < 60 ? t('{0} 秒', sec.toFixed(1)) : t('{0} 分 {1} 秒', Math.floor(sec / 60), Math.floor(sec % 60))}</span>
       </div>
-      {onCancel && <button className="ghost" onClick={onCancel} data-testid="cancel">キャンセル</button>}
+      {onCancel && <button className="ghost" onClick={onCancel} data-testid="cancel">{t('キャンセル')}</button>}
     </div>
   );
 }

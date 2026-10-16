@@ -3,6 +3,7 @@ import { detectFormat, extOf, FORMATS, formatInfo, type FormatKind } from './det
 import { Loading, ErrorBox } from './ui';
 import { size } from './viewers/Mail';
 import { loadSession, saveSession, clearSession, touchSession } from './session';
+import { t } from './i18n';
 
 const PdfViewer = lazy(() => import('./viewers/PdfViewer'));
 const EmlViewer = lazy(() => import('./viewers/EmlViewer'));
@@ -76,25 +77,25 @@ export default function App() {
       <header className="top">
         <a className="brand" href="/" onClick={(e) => { e.preventDefault(); setStack([]); }}>
           <span className="mono code">VWR-001</span>
-          <span className="title">なんでもローカルビューア</span>
+          <span className="title">{t('なんでもローカルビューア')}</span>
         </a>
         <div className="privacy-wrap">
-          <p className="privacy"><span className="dot" aria-hidden />ファイルはPCから外部送信されません／すべてブラウザ内で処理されます</p>
-          <p className="privacy-sub">開いたファイルはこのタブを閉じるまでブラウザ内に一時的に残ります（外部送信はしません）</p>
+          <p className="privacy"><span className="dot" aria-hidden />{t('ファイルはPCから外部送信されません／すべてブラウザ内で処理されます')}</p>
+          <p className="privacy-sub">{t('開いたファイルはこのタブを閉じるまでブラウザ内に一時的に残ります（外部送信はしません）')}</p>
         </div>
       </header>
       {picker}
       <main>
-        {!restored ? <Loading>準備しています</Loading> : !current ? (
+        {!restored ? <Loading>{t('準備しています')}</Loading> : !current ? (
           <>
             <section className={'drop' + (drag ? ' over' : '')} onClick={() => input.current?.click()} data-testid="drop-zone"
               role="button" tabIndex={0} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}>
-              <div className="drop-title">ファイルをここにドロップしてください</div>
-              <div className="drop-sub">または <span className="link">ファイルを選択</span> します</div>
-              <div className="drop-note">「このファイル、開けない」と思ったら、まずここに入れてみてください。</div>
+              <div className="drop-title">{t('ファイルをここにドロップしてください')}</div>
+              <div className="drop-sub">{t('または')} <span className="link">{t('ファイルを選択')}</span>{t('します') && ' ' + t('します')}</div>
+              <div className="drop-note">{t('「このファイル、開けない」と思ったら、まずここに入れてみてください。')}</div>
             </section>
             <section className="formats">
-              <h2>対応形式</h2>
+              <h2>{t('対応形式')}</h2>
               <div className="groups">
                 {GROUPS.map((g) => (
                   <div className="group" key={g}>
@@ -102,9 +103,9 @@ export default function App() {
                     <ul>
                       {FORMATS.filter((f) => f.group === g).map((f) => (
                         <li key={f.label} className={f.ready ? '' : 'pending'}>
-                          <span className="fmt">{f.label}</span>
+                          <span className="fmt">{t(f.label)}</span>
                           <span className="mono exts">{f.exts.map((x) => '.' + x).join(' ')}</span>
-                          {!f.ready && <span className="badge">準備中</span>}
+                          {!f.ready && <span className="badge">{t('準備中')}</span>}
                         </li>
                       ))}
                     </ul>
@@ -113,28 +114,28 @@ export default function App() {
               </div>
             </section>
             <section className="about">
-              <h2>しくみ</h2>
-              <p>読み込んだファイルは、お使いのブラウザの中だけで解析して表示します。サーバーへのアップロードや通信は一切行いません。再読み込みしても表示が消えないよう、開いたファイルはこのタブを閉じるまでブラウザ内（IndexedDB）に一時的に残します。「閉じる／消去」を押すと、すぐに消去します。</p>
-              <p>通信の制限はブラウザのセキュリティ設定（Content-Security-Policy）でも強制しているため、万一の不具合があってもファイルの内容が外部へ送られることはありません。</p>
+              <h2>{t('しくみ')}</h2>
+              <p>{t('読み込んだファイルは、お使いのブラウザの中だけで解析して表示します。サーバーへのアップロードや通信は一切行いません。再読み込みしても表示が消えないよう、開いたファイルはこのタブを閉じるまでブラウザ内（IndexedDB）に一時的に残します。「閉じる／消去」を押すと、すぐに消去します。')}</p>
+              <p>{t('通信の制限はブラウザのセキュリティ設定（Content-Security-Policy）でも強制しているため、万一の不具合があってもファイルの内容が外部へ送られることはありません。')}</p>
             </section>
           </>
         ) : (
           <section className="viewer">
             <div className="viewer-head">
               <div className="crumbs">
-                {stack.length > 1 && <button className="ghost" onClick={() => setStack((s) => s.slice(0, -1))}>戻る</button>}
+                {stack.length > 1 && <button className="ghost" onClick={() => setStack((s) => s.slice(0, -1))}>{t('戻る')}</button>}
                 <div>
                   <div className="fname" data-testid="file-name">{current.file.name}</div>
-                  <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : formatInfo(current.kind)?.label) ?? (extOf(current.file.name).toUpperCase() || '不明な形式')} · {size(current.file.size)}</div>
+                  <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : (formatInfo(current.kind) ? t(formatInfo(current.kind)!.label) : null)) ?? (extOf(current.file.name).toUpperCase() || t('不明な形式'))} · {size(current.file.size)}</div>
                 </div>
               </div>
               <div className="head-actions">
-                <button onClick={() => input.current?.click()}>別のファイルを開く</button>
-                <button className="ghost" onClick={wipe} data-testid="clear">閉じる／消去</button>
+                <button onClick={() => input.current?.click()}>{t('別のファイルを開く')}</button>
+                <button className="ghost" onClick={wipe} data-testid="clear">{t('閉じる／消去')}</button>
               </div>
             </div>
             <div className="viewer-body" key={stack.length + current.file.name}>
-              <Suspense fallback={<Loading>表示の準備をしています</Loading>}>
+              <Suspense fallback={<Loading>{t('表示の準備をしています')}</Loading>}>
                 <Viewer o={current} openChild={openChild} canOpen={canOpen} canOpenName={canOpenName} />
               </Suspense>
             </div>
@@ -142,10 +143,10 @@ export default function App() {
         )}
       </main>
       <footer className="foot">
-        <span>a-ef · ユーティリティを、すぐに。</span>
-        <span>表示のみの道具です。編集・変換・保存の機能はありません。</span>
+        <span>{t('a-ef · ユーティリティを、すぐに。')}</span>
+        <span>{t('表示のみの道具です。編集・変換・保存の機能はありません。')}</span>
         <span className="source">
-          <a href="https://github.com/grok-prtex/local-viewer" target="_blank" rel="noopener noreferrer" data-testid="source-link">ソースコード（GitHub）</a>
+          <a href="https://github.com/grok-prtex/local-viewer" target="_blank" rel="noopener noreferrer" data-testid="source-link">{t('ソースコード（GitHub）')}</a>
           {' · '}
           <a className="mono" href={`https://github.com/grok-prtex/local-viewer/commit/${__COMMIT__.replace('-dirty', '')}`} target="_blank" rel="noopener noreferrer" data-testid="commit">{__COMMIT__}</a>
         </span>
@@ -163,8 +164,8 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'stl': case 'step': case 'iges': case 'u3d': return <CadViewer file={file} kind={kind} />;
     case 'dxf': return <DxfViewer file={file} />;
     case 'csv': return <SheetViewer file={file} csv />;
-    case 'sheet': return <ErrorBox>Excel（XLSX / XLS）の表示は準備中です。CSV に書き出すか、PDF で受け取ると、ここで表示できます。</ErrorBox>;
-    case 'docx': return <ErrorBox>Word（DOCX）の表示は準備中です。PDF に書き出すと、ここで表示できます。</ErrorBox>;
+    case 'sheet': return <ErrorBox>{t('Excel（XLSX / XLS）の表示は準備中です。CSV に書き出すか、PDF で受け取ると、ここで表示できます。')}</ErrorBox>;
+    case 'docx': return <ErrorBox>{t('Word（DOCX）の表示は準備中です。PDF に書き出すと、ここで表示できます。')}</ErrorBox>;
     case 'image': return <ImageViewer file={file} />;
     case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
     case 'text': return <TextViewer file={file} />;
@@ -172,8 +173,8 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'joblib': return <JoblibViewer file={file} />;
     case 'access': return <AccessViewer file={file} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
-    case 'pptx': return <ErrorBox>PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。</ErrorBox>;
-    case 'dwg': return <ErrorBox>DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。</ErrorBox>;
-    default: return <ErrorBox>この形式のファイルには、まだ対応していません。対応形式の一覧をご確認ください。</ErrorBox>;
+    case 'pptx': return <ErrorBox>{t('PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。')}</ErrorBox>;
+    case 'dwg': return <ErrorBox>{t('DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。')}</ErrorBox>;
+    default: return <ErrorBox>{t('この形式のファイルには、まだ対応していません。対応形式の一覧をご確認ください。')}</ErrorBox>;
   }
 }

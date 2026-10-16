@@ -1,3 +1,4 @@
+import { t as tt } from './i18n';
 /** 画像・動画・音声の形式判定と、再生できない動画のコンテナ／コーデック情報の読み取り */
 export type ImageSub = 'native' | 'heic' | 'tiff' | 'psd' | 'raw' | 'tga' | 'jxl' | 'svg';
 export const NATIVE_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'jfif', 'gif', 'webp', 'avif', 'bmp', 'ico', 'svg'];
@@ -67,8 +68,8 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
     container = 'AVI';
     for (let i = s.indexOf('strh'); i >= 0; i = s.indexOf('strh', i + 4)) {
       const type = s.slice(i + 8, i + 12), h = s.slice(i + 12, i + 16);
-      if (type === 'vids') codecs.add(h.replace(/\0/g, '').trim() || '（不明）');
-      if (type === 'auds') { const f = s.indexOf('strf', i); if (f > 0) { const tag = b[f + 8] | (b[f + 9] << 8); codecs.add(({ 1: 'PCM', 0x55: 'MP3', 0xff: 'AAC', 0x2000: 'AC-3', 0x161: 'WMA' } as Record<number, string>)[tag] ?? `音声 0x${tag.toString(16)}`); } }
+      if (type === 'vids') codecs.add(h.replace(/\0/g, '').trim() || tt('（不明）'));
+      if (type === 'auds') { const f = s.indexOf('strf', i); if (f > 0) { const tag = b[f + 8] | (b[f + 9] << 8); codecs.add(({ 1: 'PCM', 0x55: 'MP3', 0xff: 'AAC', 0x2000: 'AC-3', 0x161: 'WMA' } as Record<number, string>)[tag] ?? tt('音声 0x{0}', tag.toString(16))); } }
     }
   } else if (b[0] === 0x1a && b[1] === 0x45) {
     container = /webm/.test(s.slice(0, 64)) ? 'WebM' : 'Matroska（MKV）';
@@ -79,8 +80,8 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
     let o = (b[5] << 24 | b[6] << 16 | b[7] << 8 | b[8]) + 4;
     for (let n = 0; n < 50 && o + 12 < b.length; n++) {
       const type = b[o], size = b[o + 1] << 16 | b[o + 2] << 8 | b[o + 3];
-      if (type === 9) codecs.add(vc[b[o + 11] & 0x0f] ?? '映像（不明）');
-      if (type === 8) codecs.add((b[o + 11] >> 4) === 10 ? 'AAC' : (b[o + 11] >> 4) === 2 ? 'MP3' : '音声（その他）');
+      if (type === 9) codecs.add(vc[b[o + 11] & 0x0f] ?? tt('映像（不明）'));
+      if (type === 8) codecs.add((b[o + 11] >> 4) === 10 ? 'AAC' : (b[o + 11] >> 4) === 2 ? 'MP3' : tt('音声（その他）'));
       o += 11 + size + 4;
     }
   } else if (b[0] === 0x30 && b[1] === 0x26) container = 'ASF（WMV / WMA）';

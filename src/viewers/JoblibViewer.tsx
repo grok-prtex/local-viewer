@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { maybeInflate, scanPickle, type PickleScan } from '../pickleScan';
 import { Loading, ErrorBox } from '../ui';
+import { t } from '../i18n';
 
 export default function JoblibViewer({ file }: { file: File }) {
   const [scan, setScan] = useState<PickleScan | null>(null);
@@ -15,21 +16,21 @@ export default function JoblibViewer({ file }: { file: File }) {
       }
       const s = scanPickle(bytes, compression);
       if (alive) setScan(s);
-    })().catch(() => alive && setErr('joblib / pickle として読めませんでした。壊れているか、未対応の圧縮形式の可能性があります。'));
+    })().catch(() => alive && setErr(t('joblib / pickle として読めませんでした。壊れているか、未対応の圧縮形式の可能性があります。')));
     return () => { alive = false; };
   }, [file]);
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!scan) return <Loading>ヘッダーを解析しています（コードは実行しません）</Loading>;
+  if (!scan) return <Loading>{t('ヘッダーを解析しています（コードは実行しません）')}</Loading>;
   return (
     <div className="cadinfo" data-testid="joblib">
       <div className="state notice">
-        joblib / pickle は任意のコードを実行できる形式です。このビューアでは<strong>復元（実行）は一切しません</strong>。プロトコルと、ファイル内に書かれている型名・文字列・数値だけを表示します。中身を使うときは、信頼できる環境の Python で開いてください。
+        {t('joblib / pickle は任意のコードを実行できる形式です。このビューアでは')}<strong>{t('復元（実行）は一切しません')}</strong>{t('。プロトコルと、ファイル内に書かれている型名・文字列・数値だけを表示します。中身を使うときは、信頼できる環境の Python で開いてください。')}
       </div>
       <dl className="mail-head">
-        <dt>pickle プロトコル</dt><dd className="mono">{scan.protocol ?? '不明'}</dd>
-        <dt>圧縮</dt><dd className="mono">{scan.compression}</dd>
-        <dt>オペコード数</dt><dd className="mono">{scan.ops.toLocaleString()}</dd>
-        <dt>状態</dt><dd>{scan.note}</dd>
+        <dt>{t('pickle プロトコル')}</dt><dd className="mono">{scan.protocol ?? t('不明')}</dd>
+        <dt>{t('圧縮')}</dt><dd className="mono">{t(scan.compression)}</dd>
+        <dt>{t('オペコード数')}</dt><dd className="mono">{scan.ops.toLocaleString()}</dd>
+        <dt>{t('状態')}</dt><dd>{scan.note}</dd>
       </dl>
       {scan.globals.length > 0 && (
         <div className="attachments">

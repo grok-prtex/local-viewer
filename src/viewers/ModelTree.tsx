@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type * as THREE from 'three';
+import { t } from '../i18n';
 
 export interface TreeNode { name: string; obj: THREE.Object3D; children: TreeNode[]; }
 
@@ -11,7 +12,7 @@ function Item({ n, depth }: { n: TreeNode; depth: number }) {
   return (
     <li>
       <label>
-        {n.children.length ? <button className="twisty" onClick={(e) => { e.preventDefault(); setOpen(!open); }} aria-label={open ? '閉じる' : '開く'}>{open ? '▾' : '▸'}</button> : <span className="twisty" />}
+        {n.children.length ? <button className="twisty" onClick={(e) => { e.preventDefault(); setOpen(!open); }} aria-label={open ? t('閉じる') : t('開く')}>{open ? '▾' : '▸'}</button> : <span className="twisty" />}
         <input type="checkbox" checked={vis} onChange={() => { n.obj.visible = !vis; setVis(!vis); }} />
         <span>{n.name}</span>
       </label>

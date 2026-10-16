@@ -1,5 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import type { MailAddr } from '../mailHeaders';
+import { t } from '../i18n';
 
 const SHOW = 5;
 const domain = (a: string) => a.split('@')[1] ?? '';
@@ -45,10 +46,10 @@ function Person({ a, showDomain }: { a: MailAddr; showDomain: boolean }) {
         {showDomain && a.name && domain(a.address) && <span className="person-domain mono">@{domain(a.address)}</span>}
       </button>
       {open && (
-        <span ref={pop} className="person-pop" role="dialog" id={id} aria-label={`${label} の連絡先`} data-testid="person-pop">
+        <span ref={pop} className="person-pop" role="dialog" id={id} aria-label={t('{0} の連絡先', label)} data-testid="person-pop">
           {a.name && <span className="pop-name">{a.name}</span>}
-          <span className={'pop-addr mono' + (wrapAddr ? ' wrap' : '')}>{a.address ? <>{a.address.split('@')[0]}<wbr />@<wbr />{a.address.split('@').slice(1).join('@')}</> : '（アドレスなし）'}</span>
-          {a.address && <button type="button" className="pop-copy" onClick={copy} autoFocus>{copied ? 'コピーしました' : 'コピー'}</button>}
+          <span className={'pop-addr mono' + (wrapAddr ? ' wrap' : '')}>{a.address ? <>{a.address.split('@')[0]}<wbr />@<wbr />{a.address.split('@').slice(1).join('@')}</> : t('（アドレスなし）')}</span>
+          {a.address && <button type="button" className="pop-copy" onClick={copy} autoFocus>{copied ? t('コピーしました') : t('コピー')}</button>}
         </span>
       )}
     </span>
@@ -66,7 +67,7 @@ export default function Recipients({ list, testid }: { list: MailAddr[]; testid?
       {shown.map((a, i) => <Person key={i} a={a} showDomain={(count.get(a.name) ?? 0) > 1} />)}
       {list.length > SHOW && (
         <button type="button" className="people-more" onClick={() => setAll((x) => !x)} aria-expanded={all}>
-          {all ? '折りたたむ' : `ほか ${list.length - SHOW} 件`}
+          {all ? t('折りたたむ') : t('ほか {0} 件', list.length - SHOW)}
         </button>
       )}
     </span>

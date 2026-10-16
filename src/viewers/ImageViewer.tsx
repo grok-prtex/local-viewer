@@ -4,6 +4,7 @@ import { imageSub, jpegCandidates, type ImageSub } from '../media';
 import { ErrorBox } from '../ui';
 import { Progress } from '../progress';
 import { attachZoomGestures } from '../gesture';
+import { t } from '../i18n';
 
 interface Page { url: string; w: number; h: number; label?: string; }
 
@@ -40,7 +41,7 @@ async function decode(file: File, sub: ImageSub): Promise<{ pages: Page[]; note?
   }
   const buf = await file.arrayBuffer();
   switch (sub) {
-    case 'heic': { const p = await heic(buf); return { pages: p.map((x, i) => ({ ...x, label: p.length > 1 ? `画像 ${i + 1}` : undefined })) }; }
+    case 'heic': { const p = await heic(buf); return { pages: p.map((x, i) => ({ ...x, label: p.length > 1 ? t('画像 {0}', i + 1) : undefined })) }; }
     case 'jxl': { const { default: dec } = await import('@jsquash/jxl/decode'); return { pages: [await imageDataToUrl(await dec(buf))] }; }
     case 'tiff': {
       const UTIF = (await import('utif')).default;
@@ -48,7 +49,7 @@ async function decode(file: File, sub: ImageSub): Promise<{ pages: Page[]; note?
       const pages: Page[] = [];
       for (const [i, ifd] of ifds.slice(0, 50).entries()) {
         UTIF.decodeImage(buf, ifd);
-        pages.push({ ...(await imageDataToUrl({ width: ifd.width, height: ifd.height, data: UTIF.toRGBA8(ifd) })), label: `ページ ${i + 1}` });
+        pages.push({ ...(await imageDataToUrl({ width: ifd.width, height: ifd.height, data: UTIF.toRGBA8(ifd) })), label: t('ページ {0}', i + 1) });
       }
       if (!pages.length) throw new Error('tiff');
       return { pages };
@@ -58,7 +59,7 @@ async function decode(file: File, sub: ImageSub): Promise<{ pages: Page[]; note?
       const psd = readPsd(buf, { skipLayerImageData: true, skipThumbnail: true, useImageData: true });
       if (!psd.imageData) throw new Error('psd');
       if (!(psd.imageData.data instanceof Uint8ClampedArray || psd.imageData.data instanceof Uint8Array)) throw new Error('psd depth');
-      return { pages: [await imageDataToUrl(psd.imageData as { width: number; height: number; data: Uint8ClampedArray })], note: '合成済みの画像を表示しています（レイヤーごとの表示はしていません）。' };
+      return { pages: [await imageDataToUrl(psd.imageData as { width: number; height: number; data: Uint8ClampedArray })], note: t('合成済みの画像を表示しています（レイヤーごとの表示はしていません）。') };
     }
     case 'tga': {
       const { TGALoader } = await import('three/examples/jsm/loaders/TGALoader.js');
@@ -76,7 +77,7 @@ async function decode(file: File, sub: ImageSub): Promise<{ pages: Page[]; note?
         } catch { /* 次の候補へ */ }
       }
       if (!best) throw new Error('raw');
-      return { pages: [best], note: 'カメラ RAW に埋め込まれたプレビュー画像を表示しています（現像処理はしていません）。' };
+      return { pages: [best], note: t('カメラ RAW に埋め込まれたプレビュー画像を表示しています（現像処理はしていません）。') };
     }
   }
   throw new Error('unsupported');
@@ -101,7 +102,7 @@ export default function ImageViewer({ file }: { file: File }) {
       if (alive) setStage('解析中');
       const r = await decode(file, s); made = r.pages;
       if (alive) { setRes(r); setPage(0); setView(null); } else r.pages.forEach((p) => URL.revokeObjectURL(p.url));
-    })().catch((e) => { if (String(e?.message) === 'cancelled') { if (alive) setErr('読み込みをキャンセルしました。'); return; } console.warn('image failed', e); if (alive) setErr('この画像を表示できませんでした。ファイルが壊れているか、まだ対応していない書き方の可能性があります。'); });
+    })().catch((e) => { if (String(e?.message) === 'cancelled') { if (alive) setErr(t('読み込みをキャンセルしました。')); return; } console.warn('image failed', e); if (alive) setErr(t('この画像を表示できませんでした。ファイルが壊れているか、まだ対応していない書き方の可能性があります。')); });
     return () => { alive = false; heicJob.cancel?.(); heicJob.cancel = undefined; made.forEach((p) => URL.revokeObjectURL(p.url)); };
   }, [file]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -131,17 +132,17 @@ export default function ImageViewer({ file }: { file: File }) {
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (err) return <ErrorBox>{err}</ErrorBox>;
-  if (!res || !cur) return <Progress p={{ stage, stages: ['読み込み中', '解析中'], detail: sub === 'heic' ? 'HEIC を WebAssembly で展開しています' : undefined }} onCancel={sub === 'heic' ? () => { heicJob.cancel?.(); } : undefined} />;
+  if (!res || !cur) return <Progress p={{ stage, stages: ['読み込み中', '解析中'], detail: sub === 'heic' ? t('HEIC を WebAssembly で展開しています') : undefined }} onCancel={sub === 'heic' ? () => { heicJob.cancel?.(); } : undefined} />;
   return (
     <div>
       <div className="toolbar">
-        <button onClick={fit}>全体表示</button>
-        <button onClick={() => { const el = host.current!; setView({ s: 1, x: (el.clientWidth - cur.w) / 2, y: (el.clientHeight - cur.h) / 2 }); }}>等倍</button>
-        <button onClick={() => zoomAt(1 / 1.25)}>縮小</button>
-        <button onClick={() => zoomAt(1.25)}>拡大</button>
-        <button onClick={() => setBg((b) => b === 'light' ? 'dark' : b === 'dark' ? 'jade' : 'light')} data-testid="bg">背景 {bg === 'light' ? 'ライト' : bg === 'dark' ? 'ダーク' : 'ジェード'}</button>
+        <button onClick={fit}>{t('全体表示')}</button>
+        <button onClick={() => { const el = host.current!; setView({ s: 1, x: (el.clientWidth - cur.w) / 2, y: (el.clientHeight - cur.h) / 2 }); }}>{t('等倍')}</button>
+        <button onClick={() => zoomAt(1 / 1.25)}>{t('縮小')}</button>
+        <button onClick={() => zoomAt(1.25)}>{t('拡大')}</button>
+        <button onClick={() => setBg((b) => b === 'light' ? 'dark' : b === 'dark' ? 'jade' : 'light')} data-testid="bg">{t('背景')} {bg === 'light' ? t('ライト') : bg === 'dark' ? t('ダーク') : t('ジェード')}</button>
         {res.pages.length > 1 && (
-          <select value={page} onChange={(e) => { setPage(Number(e.target.value)); setView(null); }} aria-label="ページ">
+          <select value={page} onChange={(e) => { setPage(Number(e.target.value)); setView(null); }} aria-label={t('ページ')}>
             {res.pages.map((p, i) => <option key={i} value={i}>{p.label ?? i + 1}</option>)}
           </select>
         )}
@@ -154,7 +155,7 @@ export default function ImageViewer({ file }: { file: File }) {
         onDoubleClick={fit}>
         {view && <img src={cur.url} alt={file.name} draggable={false} data-testid="img" style={{ width: cur.w * view.s, height: cur.h * view.s, transform: `translate(${view.x}px, ${view.y}px)` }} />}
       </div>
-      <p className="hint">{res.note ? res.note + ' ' : ''}ホイール・ピンチで拡大縮小、ドラッグ（2 本指）で移動、ダブルクリックで全体表示します。</p>
+      <p className="hint">{res.note ? res.note + ' ' : ''}{t('ホイール・ピンチで拡大縮小、ドラッグ（2 本指）で移動、ダブルクリックで全体表示します。')}</p>
     </div>
   );
 }

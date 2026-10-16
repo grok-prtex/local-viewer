@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
+import { t } from '../i18n';
 
 interface TInfo { name: string; type: string; }
 const PAGE = 100;
@@ -36,7 +37,7 @@ export default function SqlViewer({ file }: { file: File }) {
       if (!alive) return;
       setMeta(m);
       if (m.tables[0]) setCur(m.tables[0].name);
-    })().catch((e) => alive && setErr(String(e?.message) === 'cancelled' ? '読み込みをキャンセルしました。' : 'SQLite データベースを開けませんでした。'));
+    })().catch((e) => alive && setErr(String(e?.message) === 'cancelled' ? t('読み込みをキャンセルしました。') : t('SQLite データベースを開けませんでした。')));
     return () => { alive = false; job.current.cancel?.(); };
   }, [file]);
 
@@ -67,7 +68,7 @@ export default function SqlViewer({ file }: { file: File }) {
       setRows(block ? { cols: block.columns, values: block.values } : { cols: [], values: [] });
       setCur(''); setOff(0);
     } catch (e: any) {
-      setErr(e?.message === 'readonly' ? '書き込みや変更を伴う SQL は実行できません（閲覧のみです）。' : 'SQL を実行できませんでした：' + e.message);
+      setErr(e?.message === 'readonly' ? t('書き込みや変更を伴う SQL は実行できません（閲覧のみです）。') : 'SQL を実行できませんでした：' + e.message);
     }
   };
 
@@ -88,16 +89,16 @@ export default function SqlViewer({ file }: { file: File }) {
         </aside>
         <div>
           {cur && meta.schemas[cur] && (
-            <details className="sql-schema"><summary>スキーマ（{cur}）</summary>
-              <table><thead><tr><th>列</th><th>型</th><th>PK</th></tr></thead>
+            <details className="sql-schema"><summary>{t('スキーマ（{0}）', cur)}</summary>
+              <table><thead><tr><th>{t('列')}</th><th>{t('型')}</th><th>PK</th></tr></thead>
                 <tbody>{meta.schemas[cur].map((r) => <tr key={r[0]}><td className="mono">{r[1]}</td><td className="mono">{r[2]}</td><td>{r[5] ? '✓' : ''}</td></tr>)}</tbody>
               </table>
             </details>
           )}
           <div className="sql-query">
-            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder="SELECT …（読み取り専用）" data-testid="sql-input"
+            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder={t('SELECT …（読み取り専用）')} data-testid="sql-input"
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSql(); }} />
-            <button onClick={runSql} data-testid="sql-run">実行</button>
+            <button onClick={runSql} data-testid="sql-run">{t('実行')}</button>
           </div>
           {rows && (
             <div className="sheetx dbgrid" data-testid="sql-grid">
@@ -105,7 +106,7 @@ export default function SqlViewer({ file }: { file: File }) {
                 <thead><tr>{rows.cols.map((c) => <th key={c} title={c}><span className="c">{c}</span></th>)}</tr></thead>
                 <tbody>
                   {rows.values.map((r, i) => (
-                    <tr key={i}>{r.map((v, j) => { const txt = v instanceof Uint8Array ? `BLOB（${v.length} バイト）` : String(v); return v == null ? <td key={j}><span className="null">NULL</span></td> : <td key={j} title={txt}><span className="c">{txt}</span></td>; })}</tr>
+                    <tr key={i}>{r.map((v, j) => { const txt = v instanceof Uint8Array ? t('BLOB（{0} バイト）', v.length) : String(v); return v == null ? <td key={j}><span className="null">NULL</span></td> : <td key={j} title={txt}><span className="c">{txt}</span></td>; })}</tr>
                   ))}
                 </tbody>
               </table>
@@ -113,14 +114,14 @@ export default function SqlViewer({ file }: { file: File }) {
           )}
           {cur && total != null && total > PAGE && (
             <div className="toolbar">
-              <button disabled={off === 0} onClick={() => setOff(Math.max(0, off - PAGE))}>前へ</button>
+              <button disabled={off === 0} onClick={() => setOff(Math.max(0, off - PAGE))}>{t('前へ')}</button>
               <span className="mono">{off + 1}–{Math.min(off + PAGE, total)} / {total}</span>
-              <button disabled={off + PAGE >= total} onClick={() => setOff(off + PAGE)}>次へ</button>
+              <button disabled={off + PAGE >= total} onClick={() => setOff(off + PAGE)}>{t('次へ')}</button>
             </div>
           )}
         </div>
       </div>
-      <p className="hint">データベースは閲覧のみです。変更は保存されず、外部にも送信しません。</p>
+      <p className="hint">{t('データベースは閲覧のみです。変更は保存されず、外部にも送信しません。')}</p>
     </div>
   );
 }

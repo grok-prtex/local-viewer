@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { MailAddr } from '../mailHeaders';
 import Recipients from './Recipients';
+import { t } from '../i18n';
 
 export interface MailAttachment { name: string; mime: string; data: Uint8Array; }
 export interface MailData {
@@ -39,11 +40,11 @@ export default function MailView({ mail, inlineImages, onOpen, canOpen }: {
   return (
     <div className="mail">
       <dl className="mail-head">
-        <dt>件名</dt><dd className="subject">{mail.subject || '（件名なし）'}</dd>
-        <dt>差出人</dt><dd><Recipients list={mail.from} testid="mail-from" /></dd>
-        <dt>宛先</dt><dd><Recipients list={mail.to} testid="mail-to" /></dd>
+        <dt>{t('件名')}</dt><dd className="subject">{mail.subject || t('（件名なし）')}</dd>
+        <dt>{t('差出人')}</dt><dd><Recipients list={mail.from} testid="mail-from" /></dd>
+        <dt>{t('宛先')}</dt><dd><Recipients list={mail.to} testid="mail-to" /></dd>
         {mail.cc.length > 0 && <><dt>CC</dt><dd><Recipients list={mail.cc} testid="mail-cc" /></dd></>}
-        <dt>日時</dt><dd>{mail.date}</dd>
+        <dt>{t('日時')}</dt><dd>{mail.date}</dd>
       </dl>
       {mail.attachments.length > 0 && (
         <div className="attachments">
@@ -51,19 +52,19 @@ export default function MailView({ mail, inlineImages, onOpen, canOpen }: {
           <ul>
             {mail.attachments.map((a, i) => (
               <li key={i}>
-                <span className="att-name">{a.name || '（名前なし）'}</span>
+                <span className="att-name">{a.name || t('（名前なし）')}</span>
                 <span className="mono att-size">{size(a.data.length)}</span>
-                {canOpen(a.name, a.data) && <button onClick={() => onOpen(new File([a.data as BlobPart], a.name, { type: a.mime }))}>開く</button>}
-                <button className="ghost" onClick={() => download(a)}>保存</button>
+                {canOpen(a.name, a.data) && <button onClick={() => onOpen(new File([a.data as BlobPart], a.name, { type: a.mime }))}>{t('開く')}</button>}
+                <button className="ghost" onClick={() => download(a)}>{t('保存')}</button>
               </li>
             ))}
           </ul>
         </div>
       )}
       {mail.html
-        ? <iframe className="mail-body" title="メール本文" sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={srcdoc} data-testid="mail-body" />
-        : <pre className="mail-text" data-testid="mail-body">{mail.text || '（本文なし）'}</pre>}
-      {mail.html && <p className="hint">本文中の外部画像やスクリプトは、安全のため読み込みません。</p>}
+        ? <iframe className="mail-body" title={t('メール本文')} sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={srcdoc} data-testid="mail-body" />
+        : <pre className="mail-text" data-testid="mail-body">{mail.text || t('（本文なし）')}</pre>}
+      {mail.html && <p className="hint">{t('本文中の外部画像やスクリプトは、安全のため読み込みません。')}</p>}
     </div>
   );
 }
