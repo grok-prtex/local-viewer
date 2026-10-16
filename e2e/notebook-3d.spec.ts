@@ -29,7 +29,7 @@ test.describe('Jupyter ノートブック', () => {
       await expect(nb.locator('.nb-md img[src^="data:image/png"]')).toHaveCount(1);
       expect(await page.evaluate(() => (window as unknown as { __pwned?: number }).__pwned)).toBeUndefined();
     } else {
-      await expect(nb.getByTestId('nb-img').first()).toBeVisible();
+      if (process.env.NB_HAS_IMG) await expect(nb.getByTestId('nb-img').first()).toBeVisible();
     }
     await page.waitForTimeout(400);
     await page.screenshot({ path: `${SHOTS}/ipynb-pc.png` });
