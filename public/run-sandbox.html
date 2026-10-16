@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' blob: data:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; worker-src 'none'; frame-src 'none'; child-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; manifest-src 'none'; frame-ancestors 'self'"><title>sandbox</title></head>
+<body><script>
+// HTML ビューアの実行枠。sandbox="allow-scripts"（allow-same-origin なし）の不透明オリジンで動き、
+// 親ページの DOM・IndexedDB・セッションには触れられません。外部通信は CSP で遮断します。
+(function () {
+  var done = false;
+  window.addEventListener('message', function (e) {
+    if (done || e.source !== window.parent || !e.data || e.data.type !== 'lv-html') return;
+    done = true;
+    var csp = '<meta http-equiv="Content-Security-Policy" content="' + e.data.csp + '">';
+    document.open(); document.write('<!doctype html><html><head><meta charset="utf-8">' + csp + '</head><body>' + e.data.html + '</body></html>'); document.close();
+  });
+  window.parent.postMessage({ type: 'lv-sandbox-ready' }, '*');
+})();
+</script></body></html>

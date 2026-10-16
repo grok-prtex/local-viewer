@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>JS テスト</title>
+<style>body{font-family:sans-serif;padding:12px} li.ok{color:#0a7d33} li.ng{color:#c62828} #c{border:1px solid #888}</style></head>
+<body>
+<h1 id="h">読み込み中…</h1>
+<canvas id="c" width="240" height="80"></canvas>
+<ul id="r"></ul>
+<button id="b" onclick="this.textContent='クリック ' + (++window.n || (window.n = 1))">クリック</button>
+<script>
+const r = document.getElementById('r');
+const log = (name, blocked) => { const li = document.createElement('li'); li.className = blocked ? 'ok' : 'ng'; li.dataset.check = name; li.dataset.blocked = String(blocked); li.textContent = name + ': ' + (blocked ? '遮断' : '通過'); r.appendChild(li); };
+document.getElementById('h').textContent = 'スクリプトが動きました';
+document.body.dataset.ran = '1';
+const g = document.getElementById('c').getContext('2d'); g.fillStyle = '#3a7bd5'; g.fillRect(10, 10, 100, 60); g.fillStyle = '#e67e22'; g.beginPath(); g.arc(170, 40, 30, 0, 7); g.fill();
+const tryIt = (name, fn) => { try { const v = fn(); if (v && v.then) v.then(() => log(name, false), () => log(name, true)); else log(name, v === 'blocked'); } catch (e) { log(name, true); } };
+tryIt('parent.document', () => { parent.document.body.innerHTML = 'PWNED'; return 'ok'; });
+tryIt('top.location', () => { top.location.href = 'https://example.com/'; return 'ok'; });
+tryIt('indexedDB', () => new Promise((res, rej) => { const q = indexedDB.open('lv-test'); q.onsuccess = res; q.onerror = rej; }));
+tryIt('localStorage', () => { localStorage.setItem('x', '1'); return 'ok'; });
+tryIt('fetch', () => fetch('https://example.com/data.json'));
+tryIt('window.open', () => (window.open('https://example.com/') ? 'ok' : 'blocked'));
+tryIt('WebSocket', () => new Promise((res, rej) => { const w = new WebSocket('wss://example.com/'); w.onopen = res; w.onerror = rej; }));
+const img = new Image(); img.onload = () => log('external img', false); img.onerror = () => log('external img', true); img.src = 'https://example.com/x.png';
+</script>
+</body></html>

@@ -116,7 +116,7 @@ export default function AccessViewer({ file }: { file: File }) {
           )}
         </div>
       </div>
-      <p className="hint">{t('Access（MDB / ACCDB）は閲覧のみです。クエリ・フォーム・レポート・マクロは表示しません。大きな表はページ送りします。')}</p>
+      <p className="hint">{t('クエリ・フォーム・レポート・マクロは表示しません。大きな表はページ送りします。')}</p>
     </div>
   );
 }

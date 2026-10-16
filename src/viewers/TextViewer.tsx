@@ -32,9 +32,26 @@ function prettyXml(src: string): string | null {
   return out.join('\n');
 }
 
-function htmlSrcdoc(html: string): string {
-  const csp = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:";
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"></head><body>${html}</body></html>`;
+/** 実行枠の中で、書かれた HTML の先頭に入れる CSP（外部通信なし） */
+const RUN_CSP = "default-src 'none'; script-src 'unsafe-inline' blob: data:; style-src 'unsafe-inline' data: blob:; img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'";
+
+/**
+ * HTML をスクリプトごと実行して表示します。srcdoc・blob・data の iframe は親ページの CSP を引き継いで
+ * インラインスクリプトが動かないため、専用ページ /run-sandbox.html（独自の厳しい CSP）を
+ * sandbox="allow-scripts" のみ（allow-same-origin なし）で開き、postMessage で中身を渡します。
+ * 不透明オリジンなので親の DOM・IndexedDB・セッションには触れられず、外部への遷移も親の frame-src で止まります。
+ */
+function HtmlRunner({ html }: { html: string }) {
+  const ref = useRef<HTMLIFrameElement>(null);
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (!ref.current || e.source !== ref.current.contentWindow || e.data?.type !== 'lv-sandbox-ready') return;
+      ref.current.contentWindow!.postMessage({ type: 'lv-html', html, csp: RUN_CSP }, '*');
+    };
+    window.addEventListener('message', onMsg);
+    return () => window.removeEventListener('message', onMsg);
+  }, [html]);
+  return <iframe ref={ref} className="mail-frame" sandbox="allow-scripts" src="/run-sandbox.html" title={t('HTML の表示')} data-testid="html-frame" />;
 }
 
 export default function TextViewer({ file }: { file: File }) {
@@ -154,8 +171,8 @@ export default function TextViewer({ file }: { file: File }) {
       {showRendered && mode === 'markdown' && <div className="md" data-testid="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(decoded.text) }} />}
       {showRendered && mode === 'html' && (
         <>
-          <p className="hint">{t('HTML はスクリプトを止め、外部の画像やファイルを読み込まない枠の中で表示しています。')}</p>
-          <iframe className="mail-frame" sandbox="" title={t('HTML の表示')} srcDoc={htmlSrcdoc(decoded.text)} data-testid="html-frame" />
+          <p className="hint">{t('HTML はスクリプトも動かして表示します。外部との通信や、このページ・保存中のファイルへのアクセスはできない隔離された枠の中で実行します。')}</p>
+          <HtmlRunner html={decoded.text} />
         </>
       )}
       {!showRendered && (

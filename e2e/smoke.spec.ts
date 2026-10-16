@@ -353,13 +353,29 @@ test.describe('テキスト・ソースコード', () => {
     await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.xml');
     await expect(page.getByTestId('code')).toContainText('<item id="1">値</item>');
   });
-  test('HTML はスクリプトなしの枠で表示', async ({ page }) => {
-    const ext: string[] = []; page.on('request', (r) => { if (r.url().includes('example.com')) ext.push(r.url()); });
+  test('HTML はスクリプトを動かし、隔離枠の外には出られない', async ({ page, baseURL }) => {
+    // CSP で止めた要求も request イベントは出るため、実際に通信が完了したもの・CSP 以外で失敗したものを数えます
+    const ext: string[] = []; const isExt = (u: string) => !u.startsWith(baseURL!) && !/^(data|blob|about):/.test(u);
+    page.on('requestfinished', (r) => { if (isExt(r.url())) ext.push('finished ' + r.url()); });
+    page.on('requestfailed', (r) => { if (isExt(r.url()) && !/^csp$|BLOCKED_BY_CSP|blocked/i.test(r.failure()?.errorText ?? '')) ext.push('failed ' + r.url() + ' ' + r.failure()?.errorText); });
     await page.goto('/');
-    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.html');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/html-js.html');
     const fr = page.frameLocator('[data-testid="html-frame"]');
-    await expect(fr.locator('h1')).toHaveText('HTML テスト');
-    await expect(fr.locator('body')).not.toContainText('SCRIPT RAN');
+    await expect(fr.locator('h1')).toHaveText('スクリプトが動きました');
+    for (const k of ['parent.document', 'top.location', 'indexedDB', 'localStorage', 'fetch', 'window.open', 'WebSocket', 'external img'])
+      await expect(fr.locator(`li[data-check="${k}"]`), k).toHaveAttribute('data-blocked', 'true', { timeout: 10000 });
+    await fr.locator('#b').click(); await expect(fr.locator('#b')).toHaveText('クリック 1');
+    await expect(page.getByTestId('file-name')).toHaveText('html-js.html');
+    await expect(page.locator('body')).not.toContainText('PWNED');
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: `${SHOTS}/html-js.png`, fullPage: true });
+    // 親のセッション（IndexedDB）は無事で、再読み込みで復元され、また実行される
+    await page.reload();
+    await expect(page.getByTestId('file-name')).toHaveText('html-js.html');
+    await expect(fr.locator('h1')).toHaveText('スクリプトが動きました');
+    // ソース表示に切り替えできる
+    await page.getByTestId('mode-toggle').click();
+    await expect(page.getByTestId('code')).toContainText('スクリプトが動きました');
     expect(ext).toEqual([]);
   });
   test('ソースのハイライト・行番号・Ctrl+F', async ({ page }) => {

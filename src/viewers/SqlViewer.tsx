@@ -69,7 +69,7 @@ export default function SqlViewer({ file }: { file: File }) {
       setRows(block ? { cols: block.columns, values: block.values } : { cols: [], values: [] });
       setCur(''); setOff(0);
     } catch (e: any) {
-      setErr(e?.message === 'readonly' ? t('書き込みや変更を伴う SQL は実行できません（閲覧のみです）。') : t('SQL を実行できませんでした：{0}', e.message));
+      setErr(e?.message === 'readonly' ? t('書き込みや変更を伴う SQL は実行できません。') : t('SQL を実行できませんでした：{0}', e.message));
     }
   };
 
@@ -98,7 +98,7 @@ export default function SqlViewer({ file }: { file: File }) {
             </details>
           )}
           <div className="sql-query">
-            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder={t('SELECT …（読み取り専用）')} data-testid="sql-input"
+            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder={'SELECT …'} data-testid="sql-input"
               onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSql(); }} />
             <button onClick={runSql} data-testid="sql-run">{t('実行')}</button>
           </div>
@@ -124,7 +124,6 @@ export default function SqlViewer({ file }: { file: File }) {
           )}
         </div>
       </div>
-      <p className="hint">{t('データベースは閲覧のみです。変更は保存されず、外部にも送信しません。')}</p>
     </div>
   );
 }
