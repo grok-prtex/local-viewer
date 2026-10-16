@@ -51,7 +51,7 @@ function HtmlRunner({ html }: { html: string }) {
     window.addEventListener('message', onMsg);
     return () => window.removeEventListener('message', onMsg);
   }, [html]);
-  return <iframe ref={ref} className="mail-frame" sandbox="allow-scripts" src="/run-sandbox.html" title={t('HTML の表示')} data-testid="html-frame" />;
+  return <iframe ref={ref} className="mail-frame" style={{ width: '100%', height: '70vh', minHeight: 420, background: '#fff' }} sandbox="allow-scripts" src="/run-sandbox.html" title={t('HTML の表示')} data-testid="html-frame" />;
 }
 
 export default function TextViewer({ file }: { file: File }) {
