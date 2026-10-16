@@ -159,8 +159,28 @@ export default function App() {
   );
 }
 
+function EmptyFile({ file }: { file: File }) {
+  const ext = extOf(file.name);
+  return (
+    <div className="empty-file" role="status" data-testid="empty-file">
+      <div className="empty-icon mono" aria-hidden>0 B</div>
+      <div>
+        <p className="empty-title">{t('中身が空のファイルです')}</p>
+        <dl className="empty-meta mono">
+          <dt>{t('ファイル名')}</dt><dd>{file.name}</dd>
+          <dt>{t('拡張子')}</dt><dd>{ext ? '.' + ext : t('なし')}</dd>
+          <dt>{t('サイズ')}</dt><dd>{t('0 バイト')}</dd>
+        </dl>
+        <p className="hint">{t('表示できる内容がありません。保存や書き出しが途中で止まった可能性があります。')}</p>
+      </div>
+    </div>
+  );
+}
+
 function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: (f: File) => void; canOpen: (n: string, d: Uint8Array) => boolean; canOpenName: (n: string) => boolean }) {
   const { file, kind } = o;
+  // 0 バイトはどの形式でも解析せず、空ファイルとして案内します
+  if (file.size === 0) return <EmptyFile file={file} />;
   switch (kind) {
     case 'pdf': return <PdfViewer file={file} />;
     case 'eml': return <EmlViewer file={file} onOpen={openChild} canOpen={canOpen} />;

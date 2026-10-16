@@ -20,7 +20,7 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite（閲覧のみ）', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
   { kind: 'access', label: 'Access（閲覧のみ）', group: 'Office', exts: ['mdb', 'accdb'], ready: true },
-  { kind: 'joblib', label: 'joblib / pickle', group: 'Office', exts: ['joblib', 'pkl', 'pickle'], ready: true },
+  { kind: 'joblib', label: 'joblib / pickle', group: 'Code', exts: ['joblib', 'pkl', 'pickle'], ready: true },
   { kind: 'eml', label: 'EML', group: 'Mail', exts: ['eml'], ready: true },
   { kind: 'msg', label: 'Outlook MSG', group: 'Mail', exts: ['msg'], ready: true },
   { kind: 'dxf', label: 'DXF', group: 'CAD', exts: ['dxf'], ready: true },

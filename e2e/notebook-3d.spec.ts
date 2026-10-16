@@ -16,7 +16,7 @@ test.describe('Jupyter ノートブック', () => {
     await expect(code).toContainText('Jupyter ノートブック'); await expect(code).toContainText('ソースコード');
     await expect(page.locator('section.formats .group').filter({ has: page.locator('[data-group="Office"]') })).not.toContainText('Jupyter');
     await expect(page.locator('section.formats')).not.toContainText('メタ情報のみ');
-    await expect(page.locator('section.formats')).toContainText('joblib / pickle');
+    await expect(code).toContainText('joblib / pickle');
     await page.locator('section.formats').screenshot({ path: `${SHOTS}/home-formats.png` });
     await page.getByTestId('file-input').setInputFiles(NB);
     const nb = page.getByTestId('notebook');

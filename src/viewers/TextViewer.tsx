@@ -149,6 +149,7 @@ export default function TextViewer({ file }: { file: File }) {
           <button onClick={() => matches.length && setHit((h) => (h + 1) % matches.length)} aria-label={t('次へ')}>↓</button>
         </div>
       )}
+      {decoded.text.length > 0 && decoded.text.trim() === '' && <p className="hint" data-testid="blank-note">{t('空白・改行だけのファイルです（{0} 文字）。', decoded.text.length)}</p>}
       {view.note && <p className="hint">{view.note}</p>}
       {showRendered && mode === 'markdown' && <div className="md" data-testid="markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(decoded.text) }} />}
       {showRendered && mode === 'html' && (
