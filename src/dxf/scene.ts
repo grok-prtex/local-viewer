@@ -8,6 +8,7 @@ export type TextItem = {
   s: string; x: number; y: number; h: number; rot: number; wf: number;
   ha: 0 | 1 | 2; va: 'baseline' | 'bottom' | 'middle' | 'top';
   width?: number; layer: string; color: number; multiline?: boolean;
+  /** 寸法・引出線の文字（縮小時も最小サイズで表示） */ dim?: boolean;
 };
 export type DxfScene = { segs: Seg[]; texts: TextItem[]; skipped: number; skippedTypes: Record<string, number> };
 /** アフィン変換 x' = a x + c y + e, y' = b x + d y + f */
@@ -55,7 +56,7 @@ export function buildScene(dxf: any, mode: 'model' | 'paper' = 'model'): DxfScen
   const skip = (t: string) => { skipped++; skippedTypes[t] = (skippedTypes[t] ?? 0) + 1; };
   let clip: { x0: number; y0: number; x1: number; y1: number } | null = null;
 
-  const walk = (ents: any[], m: M, depth: number, pLayer?: string, pColor?: number) => {
+  const walk = (ents: any[], m: M, depth: number, pLayer?: string, pColor?: number, inDim = false) => {
     for (const e of ents ?? []) {
       if (e.visible === false) continue;
       const layer = (e.layer === '0' || e.layer == null) && pLayer ? pLayer : e.layer ?? '0';
@@ -72,7 +73,7 @@ export function buildScene(dxf: any, mode: 'model' | 'paper' = 'model'): DxfScen
         if (clip && (p.x < clip.x0 || p.x > clip.x1 || p.y < clip.y0 || p.y > clip.y1)) return;
         const dir = av(m, Math.cos(r), Math.sin(r)), up = av(m, -Math.sin(r), Math.cos(r));
         const sc = Math.hypot(up.x, up.y);
-        texts.push({ s, x: p.x, y: p.y, h: (h || 2.5) * sc, rot: Math.atan2(dir.y, dir.x), wf: (extra.wf ?? 1) * (Math.hypot(dir.x, dir.y) / (sc || 1)), ha, va, layer, color, ...extra, width: extra.width ? extra.width * Math.hypot(dir.x, dir.y) : undefined });
+        texts.push({ dim: inDim || e.type === 'DIMENSION' || e.type === 'MULTILEADER', s, x: p.x, y: p.y, h: (h || 2.5) * sc, rot: Math.atan2(dir.y, dir.x), wf: (extra.wf ?? 1) * (Math.hypot(dir.x, dir.y) / (sc || 1)), ha, va, layer, color, ...extra, width: extra.width ? extra.width * Math.hypot(dir.x, dir.y) : undefined });
       };
       const textEnt = (s: string) => {
         const hz = e.halign ?? e.horizontalJustification ?? 0, vt = e.valign ?? e.verticalJustification ?? 0;
@@ -129,13 +130,13 @@ export function buildScene(dxf: any, mode: 'model' | 'paper' = 'model'): DxfScen
             const ox = ix * (e.columnSpacing ?? 0), oy = iy * (e.rowSpacing ?? 0);
             const px = e.position.x + ox * cos - oy * sin, py = e.position.y + ox * sin + oy * cos;
             const local: M = [cos * sx, sin * sx, -sin * sy, cos * sy, px - (cos * sx * bx - sin * sy * by), py - (sin * sx * bx + cos * sy * by)];
-            walk(blk.entities, mul(m, local), depth + 1, layer, color);
+            walk(blk.entities, mul(m, local), depth + 1, layer, color, inDim);
           }
           break;
         }
         case 'DIMENSION': {
           const blk = e.block && dxf.blocks?.[e.block];
-          if (blk?.entities?.length) { walk(blk.entities, m, depth + 1, layer, color); break; }
+          if (blk?.entities?.length) { walk(blk.entities, m, depth + 1, layer, color, true); break; }
           // 匿名ブロックが無い：寸法線・矢印・寸法値を自前で描きます
           const t = e.dimensionType & 7, p13 = e.linearOrAngularPoint1, p14 = e.linearOrAngularPoint2, p10 = e.anchorPoint;
           const label = (v: number, pre = '') => { const s = e.text && e.text !== '<>' ? e.text.replace('<>', pre + fmtNum(v)) : pre + fmtNum(v); return e.text === ' ' ? '' : cleanMText(s); };

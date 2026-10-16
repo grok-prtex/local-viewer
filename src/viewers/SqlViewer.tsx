@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { t } from '../i18n';
+import { useColResize } from './colResize';
 
 interface TInfo { name: string; type: string; }
 const PAGE = 100;
@@ -53,7 +54,7 @@ export default function SqlViewer({ file }: { file: File }) {
       if (!alive) return;
       const block = r.result[0];
       setRows(block ? { cols: block.columns, values: block.values } : { cols: [], values: [] });
-    })().catch((e) => alive && setErr('テーブルを読めませんでした：' + e.message));
+    })().catch((e) => alive && setErr(t('テーブルを読めませんでした：{0}', e.message)));
     return () => { alive = false; };
   }, [meta, cur, off]);
 
@@ -68,10 +69,11 @@ export default function SqlViewer({ file }: { file: File }) {
       setRows(block ? { cols: block.columns, values: block.values } : { cols: [], values: [] });
       setCur(''); setOff(0);
     } catch (e: any) {
-      setErr(e?.message === 'readonly' ? t('書き込みや変更を伴う SQL は実行できません（閲覧のみです）。') : 'SQL を実行できませんでした：' + e.message);
+      setErr(e?.message === 'readonly' ? t('書き込みや変更を伴う SQL は実行できません（閲覧のみです）。') : t('SQL を実行できませんでした：{0}', e.message));
     }
   };
 
+  const rz = useColResize(rows?.cols.length ?? 0, `${cur}|${rows?.cols.join('\u0001')}`);
   if (err && !meta) return <ErrorBox>{err}</ErrorBox>;
   if (!meta) return <Progress p={prog} onCancel={() => job.current.cancel?.()} />;
   const total = cur ? meta.counts[cur] : null;
@@ -102,11 +104,12 @@ export default function SqlViewer({ file }: { file: File }) {
           </div>
           {rows && (
             <div className="sheetx dbgrid" data-testid="sql-grid">
-              <table>
-                <thead><tr>{rows.cols.map((c) => <th key={c} title={c}><span className="c">{c}</span></th>)}</tr></thead>
+              <table ref={rz.table} style={rz.tableStyle} className={rz.sized ? 'sized' : undefined}>
+                {rz.colgroup}
+                <thead><tr>{rows.cols.map((c, i) => <th key={c} title={c}><span className="c">{c}</span>{rz.handle(i)}</th>)}</tr></thead>
                 <tbody>
                   {rows.values.map((r, i) => (
-                    <tr key={i}>{r.map((v, j) => { const txt = v instanceof Uint8Array ? t('BLOB（{0} バイト）', v.length) : String(v); return v == null ? <td key={j}><span className="null">NULL</span></td> : <td key={j} title={txt}><span className="c">{txt}</span></td>; })}</tr>
+                    <tr key={i}>{r.map((v, j) => { const txt = v instanceof Uint8Array ? t('BLOB（{0} バイト）', v.length) : String(v); return v == null ? <td key={j} data-ci={j}><span className="null">NULL</span></td> : <td key={j} data-ci={j} title={txt}><span className="c">{txt}</span></td>; })}</tr>
                   ))}
                 </tbody>
               </table>

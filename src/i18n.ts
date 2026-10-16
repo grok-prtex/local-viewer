@@ -38,8 +38,8 @@ export function t(ja: string, ...vals: (string | number)[]): string {
   return fill(en, vals);
 }
 export const getLang = () => lang;
-export function setLang(l: Lang) {
-  lang = l; write(LANG_KEY, l);
+export function setLang(l: Lang, persist = true) {
+  lang = l; if (persist) write(LANG_KEY, l);
   document.documentElement.lang = l;
   document.title = t('なんでもローカルビューア | a-ef');
   document.querySelector('meta[name="description"]')?.setAttribute('content', t('PDF・メール・CAD・Office ファイルを、アップロードせずブラウザだけで表示します。'));
@@ -58,4 +58,4 @@ export const useThemePref = () => useSyncExternalStore(subscribe, getTheme, getT
 export const useResolvedTheme = () => useSyncExternalStore(subscribe, resolvedTheme, resolvedTheme);
 
 /** 起動時に一度だけ呼びます（theme-init.js と同じ結果をそろえる） */
-export function initPrefs() { applyTheme(); setLang(lang); }
+export function initPrefs() { applyTheme(); setLang(lang, false); }

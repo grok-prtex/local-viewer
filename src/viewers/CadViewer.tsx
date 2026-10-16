@@ -105,7 +105,7 @@ export default function CadViewer({ file, kind }: { file: File; kind: 'stl' | 's
           for (const c of tn.children) if ((cnt.get(c.name) ?? 0) > 1) { const k = (seen.get(c.name) ?? 0) + 1; seen.set(c.name, k); c.name = `${c.name} <${k}>`; c.obj.name = c.name; }
           return [gr, tn];
         };
-        if (r.root) { const [o, t0] = toGroup(r.root, 0); group.add(o); let t = t0; while (t.name === '（名前なし）' && t.children.length === 1 && t.children[0].children.length) t = t.children[0]; root = t; } else built.forEach((m) => group.add(m));
+        if (r.root) { const [o, t0] = toGroup(r.root, 0); group.add(o); const noName = t('（名前なし）'); let nd = t0; while (nd.name === noName && nd.children.length === 1 && nd.children[0].children.length) nd = nd.children[0]; root = nd; } else built.forEach((m) => group.add(m));
       }
       set({ stage: '描画中' }); await nextFrame();
       if (alive) { setTree(root && root.children.length ? root : null); setObj(group); }

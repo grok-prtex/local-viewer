@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { decodeCsv } from './csv';
 import { t } from '../i18n';
+import { colName, useColResize } from './colResize';
 
 interface Cell { c: number; v: string; bg: string | null; fg: string | null; b: boolean; i: boolean; u: boolean; sz: number | null; ha: string | null; va: string | null; wrap: boolean; bt: string | null; bb: string | null; bl: string | null; br: string | null; }
 interface Row { h: number; hidden: boolean; cells: Cell[]; }
@@ -60,6 +61,9 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
     return () => { alive = false; job.current.cancel?.(); };
   }, [file, csv, xls]);
 
+  const wsv = sheets?.[cur];
+  const vcols = useMemo(() => (wsv ? wsv.cols.filter((c) => !c.hidden) : []), [wsv]);
+  const rz = useColResize(vcols.length, `${cur}|${sheets?.length}`, useMemo(() => vcols.map((c) => c.w), [vcols]));
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!sheets) return <Progress p={prog} onCancel={xls || csv ? undefined : () => job.current.cancel?.()} />;
   const ws = sheets[cur];
@@ -67,12 +71,14 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
   const skip = new Set<string>();
   for (const m of ws.merges) { cover.set(`${m.r},${m.c}`, { rowspan: m.rowspan, colspan: m.colspan }); for (let y = m.r; y < m.r + m.rowspan; y++) for (let x = m.c; x < m.c + m.colspan; x++) if (y !== m.r || x !== m.c) skip.add(`${y},${x}`); }
   const rows = ws.rows.slice(0, shown);
+  const vis = new Map<number, number>(); ws.cols.forEach((c, i) => { if (!c.hidden) vis.set(i, vis.size); });
   return (
     <div>
       {sheets.length > 1 && <div className="tabs" role="tablist">{sheets.map((s, i) => <button key={s.name + i} role="tab" aria-selected={i === cur} onClick={() => { setCur(i); setShown(VIS); }}>{s.name}</button>)}</div>}
       <div className="sheetx" data-testid="sheet">
-        <table>
-          <colgroup>{ws.cols.filter((c) => !c.hidden).map((c, i) => <col key={i} style={{ width: c.w }} />)}</colgroup>
+        <table ref={rz.table} style={rz.tableStyle}>
+          {rz.colgroup ?? <colgroup>{vcols.map((c, i) => <col key={i} style={{ width: c.w }} />)}</colgroup>}
+          <thead className="letters"><tr>{vcols.map((_, i) => <th key={i}>{colName(i)}{rz.handle(i)}</th>)}</tr></thead>
           <tbody>
             {rows.map((r, ri) => r.hidden ? null : (
               <tr key={ri} style={{ height: r.h }}>
@@ -84,7 +90,7 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
                   if (c.wrap) st.whiteSpace = 'pre-wrap';
                   const bd = (e: string | null) => e ? `1px solid ${e}` : undefined;
                   if (c.bt) st.borderTop = bd(c.bt)!; if (c.bb) st.borderBottom = bd(c.bb)!; if (c.bl) st.borderLeft = bd(c.bl)!; if (c.br) st.borderRight = bd(c.br)!;
-                  return <td key={c.c} rowSpan={sp?.rowspan} colSpan={sp?.colspan} style={st}>{c.v}</td>;
+                  return <td key={c.c} data-ci={vis.get(c.c)} rowSpan={sp?.rowspan} colSpan={sp?.colspan} style={st}>{c.v}</td>;
                 })}
               </tr>
             ))}

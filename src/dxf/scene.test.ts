@@ -17,6 +17,7 @@ describe('DXF 文字・寸法', () => {
     const s = strs(buildScene(d, 'model'));
     for (const w of ['図番', '名称', 'LV-2026-001', 'ベースプレート 組立図', '中央 CENTER', '回転90°', '⌀30 ±0.1 45°', 'リーダー注記', 'MLEADER 引出し', '120', '60', 'R15'])
       expect(s.some((x) => x.includes(w)), w).toBe(true);
+    expect(s).toEqual(expect.arrayContaining(['120', '60', 'R15']));
     expect(s).not.toContain('DWGNO');
     expect(s.join('|')).not.toContain('PS-01');
     expect(hasPaperSpace(d)).toBe(true);

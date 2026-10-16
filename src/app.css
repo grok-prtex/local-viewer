@@ -210,3 +210,23 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 /* シンタックスハイライト：ダーク配色 */
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --hl-c:#8b949e; --hl-k:#c4a7ff; --hl-s:#5fd4a3; --hl-n:#f0b35c; --hl-t:#79b0ff; --hl-a:#5fc8d8; --hl-m:#d39cff; --hl-d:#ff8a80; } }
 :root[data-theme="dark"] { --hl-c:#8b949e; --hl-k:#c4a7ff; --hl-s:#5fd4a3; --hl-n:#f0b35c; --hl-t:#79b0ff; --hl-a:#5fc8d8; --hl-m:#d39cff; --hl-d:#ff8a80; }
+/* テーマ・言語切替 */
+.prefs { display: flex; gap: var(--sp-2); align-items: center; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-md); overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; background: transparent; color: var(--ink-2); padding: 4px 10px; font-size: var(--fs-xs); cursor: pointer; min-height: 28px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--ink); color: var(--surface); }
+.seg button:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+@media (max-width: 560px) { .prefs { width: 100%; justify-content: flex-end; } }
+/* 列幅変更 */
+.sheetx th { position: sticky; }
+.col-rs { position: absolute; top: 0; right: -4px; width: 9px; height: 100%; cursor: col-resize; z-index: 3; touch-action: none; }
+.col-rs::after { content: ''; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
+.col-rs:hover::after, .col-rs:focus-visible::after { background: var(--line-2); }
+.col-rs.active::after { top: 0; bottom: 0; background: var(--signal); }
+.col-rs:focus-visible { outline: none; }
+body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }
+.dbgrid table.sized .c { max-width: none; }
+.dbgrid table.sized th, .dbgrid table.sized td { overflow: hidden; }
+.sheetx thead.letters th { text-align: center; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); font-weight: 500; padding: 2px 4px; overflow: hidden; }
+@media (pointer: coarse) { .col-rs { width: 18px; right: -9px; } .col-rs::after { left: 7px; background: var(--line); } }

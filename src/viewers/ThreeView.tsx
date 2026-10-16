@@ -36,7 +36,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
   const [colors, setColors] = useState(false);
   const [ghost, setGhost] = useState(true);
   const [picked, setPicked] = useState('');
-  const [pivotNote, setPivotNote] = useState(t('モデル中心'));
+  const [pivotNote, setPivotNote] = useState('モデル中心');
   const [wire, setWire] = useState(false);
   const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>('light');
   const [size, setSize] = useState<THREE.Vector3 | null>(null);
@@ -142,14 +142,14 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       const r = renderer.domElement.getBoundingClientRect();
       ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
       const hit = ray.intersectObjects(meshes, false).find((h) => { let o: THREE.Object3D | null = h.object; while (o) { if (!o.visible) return false; o = o.parent; } return true; });
-      if (hit) { controls.target.copy(hit.point); controls.update(); setPivotNote(t('ダブルクリックした点')); }
+      if (hit) { controls.target.copy(hit.point); controls.update(); setPivotNote('ダブルクリックした点'); }
     };
     renderer.domElement.addEventListener('dblclick', onDbl);
     api.current = {
       fit, setWire: (w) => { wireNow = w; setW(w); }, setBg,
       setGrid: (g) => { helpers.visible = g; },
       setUp: (u) => { upAxis = u; buildHelpers(); fit(); },
-      setPivot: (o) => { pivotOrigin = o; fit(); setPivotNote(o ? t('原点') : t('モデル中心')); },
+      setPivot: (o) => { pivotOrigin = o; fit(); setPivotNote(o ? '原点' : 'モデル中心'); },
       setColors,
       setGhost: (g) => { ghostOn = g; applyMats(); setW(wireNow); },
     };
@@ -190,7 +190,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
         <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">{t('背景')} {bg === 'light' ? t('ライト') : bg === 'dark' ? t('ダーク') : t('ジェード')}</button>
         <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>{t('原点・グリッド')}</button>
         <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title={t('モデルの上方向を切り替えます')}>{t('上方向')} {up.toUpperCase()}</button>
-        <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">{t('回転中心：')}{pivotNote}</button>
+        <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">{t('回転中心：')}{t(pivotNote)}</button>
         <button aria-pressed={ghost} onClick={() => { setGhost(!ghost); api.current?.setGhost(!ghost); }} title={t('部品を選んだとき、ほかの部品を薄く表示します')}>{t('ゴースト表示')}</button>
         <button aria-pressed={colors} onClick={() => { setColors(!colors); api.current?.setColors(!colors); }}>{t('部品ごとに色分け')}</button>
         {size && <span className="mono dims">{t('外形')} {fmt(size.x)} × {fmt(size.y)} × {fmt(size.z)}</span>}

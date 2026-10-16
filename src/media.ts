@@ -62,7 +62,7 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
   const s = ascii(b, 0, Math.min(b.length, 4 << 20));
   let container = '不明';
   if (ftypBrand(b)) {
-    container = ftypBrand(b) === 'qt  ' ? 'QuickTime（MOV）' : `MP4（${ftypBrand(b)!.trim()}）`;
+    container = ftypBrand(b) === 'qt  ' ? 'QuickTime (MOV)' : `MP4 (${ftypBrand(b)!.trim()})`;
     for (let i = s.indexOf('stsd'); i >= 0; i = s.indexOf('stsd', i + 4)) { const fcc = s.slice(i + 16, i + 20); if (/^[\w. -]{4}$/.test(fcc)) codecs.add(fcc.trim()); }
   } else if (t.startsWith('RIFF') && t.slice(8, 12) === 'AVI ') {
     container = 'AVI';
@@ -72,7 +72,7 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
       if (type === 'auds') { const f = s.indexOf('strf', i); if (f > 0) { const tag = b[f + 8] | (b[f + 9] << 8); codecs.add(({ 1: 'PCM', 0x55: 'MP3', 0xff: 'AAC', 0x2000: 'AC-3', 0x161: 'WMA' } as Record<number, string>)[tag] ?? tt('音声 0x{0}', tag.toString(16))); } }
     }
   } else if (b[0] === 0x1a && b[1] === 0x45) {
-    container = /webm/.test(s.slice(0, 64)) ? 'WebM' : 'Matroska（MKV）';
+    container = /webm/.test(s.slice(0, 64)) ? 'WebM' : 'Matroska (MKV)';
     for (const m of s.matchAll(/[VAS]_[A-Z0-9][A-Z0-9/._-]{1,30}/g)) codecs.add(m[0]);
   } else if (t.startsWith('FLV')) {
     container = 'FLV';
@@ -84,10 +84,10 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
       if (type === 8) codecs.add((b[o + 11] >> 4) === 10 ? 'AAC' : (b[o + 11] >> 4) === 2 ? 'MP3' : tt('音声（その他）'));
       o += 11 + size + 4;
     }
-  } else if (b[0] === 0x30 && b[1] === 0x26) container = 'ASF（WMV / WMA）';
+  } else if (b[0] === 0x30 && b[1] === 0x26) container = 'ASF (WMV / WMA)';
   else if (t.startsWith('OggS')) container = 'Ogg';
   else if (b[0] === 0x47 && b[188] === 0x47) container = 'MPEG-TS';
-  else if (b[0] === 0 && b[1] === 0 && b[2] === 1 && b[3] === 0xba) container = 'MPEG-PS（MPG）';
+  else if (b[0] === 0 && b[1] === 0 && b[2] === 1 && b[3] === 0xba) container = 'MPEG-PS (MPG)';
   return { container, codecs: [...codecs].slice(0, 6) };
 }
 

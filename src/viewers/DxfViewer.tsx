@@ -4,10 +4,11 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { decodeDxf, parseDxf } from '../dxf/parse';
 import { buildScene, hasPaperSpace, type DxfScene, type Seg, type TextItem } from '../dxf/scene';
 import { Loading, ErrorBox } from '../ui';
-import { t } from '../i18n';
+import { resolvedTheme, t } from '../i18n';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Bg = 'light' | 'dark' | 'jade';
+const DIM_MIN_PX = 10;
 const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic","Meiryo",sans-serif';
 /** 背景に合わせて線・文字の色を読みやすく調整します */
 function adjust(rgb: number, m: Bg): THREE.Color {
@@ -39,8 +40,8 @@ export default function DxfViewer({ file }: { file: File }) {
   const hiddenRef = useRef(hidden0);
   const [err, setErr] = useState('');
   const [hidden, setHidden] = useState<Set<string>>(hidden0);
-  const [bg, setBgMode] = useState<Bg>('dark');
-  const bgRef = useRef<Bg>('dark');
+  const [bg, setBgMode] = useState<Bg>(() => (resolvedTheme() === 'light' ? 'light' : 'dark'));
+  const bgRef = useRef<Bg>(bg);
   const api = useRef<{ fit: () => void; lines: Map<string, THREE.Object3D>; setBg: (m: Bg) => void; redraw: () => void } | null>(null);
 
   useEffect(() => {
@@ -108,7 +109,10 @@ export default function DxfViewer({ file }: { file: File }) {
       const hid = hiddenRef.current, m = bgRef.current; const colors = new Map<number, string>(); drawn = 0;
       for (const tx of data.texts) {
         if (hid.has(tx.layer)) continue;
-        const fpx = tx.h * sc * 1.25; if (fpx < 1.5) continue;
+        let fpx = tx.h * sc * 1.25;
+        // 寸法値は縮小しても読めるよう最小 10px（実寸の 4 倍まで）で描きます。ほかの文字は 1px 未満を省きます
+        if (tx.dim && fpx < DIM_MIN_PX) { const up = Math.min(DIM_MIN_PX, fpx * 4); if (up < 3) continue; fpx = up; }
+        else if (fpx < 1) continue;
         const sx = w / 2 + (tx.x - cx) * sc, sy = h / 2 - (tx.y - cy) * sc;
         let lines = wraps.get(tx); if (!lines) { lines = wrapLines(ctx, tx); wraps.set(tx, lines); }
         const reach = fpx * Math.max(...lines.map((l) => l.length)) * 1.1 + fpx * lines.length * 1.7;
@@ -117,7 +121,7 @@ export default function DxfViewer({ file }: { file: File }) {
         ctx.save(); ctx.translate(sx, sy); ctx.rotate(-tx.rot); if (tx.wf !== 1 && tx.wf > 0) ctx.scale(tx.wf, 1);
         ctx.font = `${fpx}px ${FONT}`; ctx.fillStyle = col;
         ctx.textAlign = tx.ha === 1 ? 'center' : tx.ha === 2 ? 'right' : 'left';
-        const capPx = tx.h * sc, lh = tx.h * sc * (5 / 3);
+        const capPx = fpx / 1.25, lh = capPx * (5 / 3);
         if (tx.multiline || lines.length > 1) {
           // 1 行目の大文字の上端を基準に、行間 5/3 で並べます（AutoCAD の既定）
           const total = (lines.length - 1) * lh + capPx;

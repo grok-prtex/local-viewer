@@ -1,9 +1,10 @@
+import Prefs from './Prefs';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { detectFormat, extOf, FORMATS, formatInfo, type FormatKind } from './detect';
 import { Loading, ErrorBox } from './ui';
 import { size } from './viewers/Mail';
 import { loadSession, saveSession, clearSession, touchSession } from './session';
-import { t } from './i18n';
+import { t, useLang } from './i18n';
 
 const PdfViewer = lazy(() => import('./viewers/PdfViewer'));
 const EmlViewer = lazy(() => import('./viewers/EmlViewer'));
@@ -24,6 +25,7 @@ const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text'] as
 const isReady = (k: FormatKind) => FORMATS.some((f) => f.kind === k && f.ready);
 
 export default function App() {
+  const lang = useLang();
   const [stack, setStack] = useState<Opened[]>([]);
   const [drag, setDrag] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -83,9 +85,10 @@ export default function App() {
           <p className="privacy"><span className="dot" aria-hidden />{t('ファイルはPCから外部送信されません／すべてブラウザ内で処理されます')}</p>
           <p className="privacy-sub">{t('開いたファイルはこのタブを閉じるまでブラウザ内に一時的に残ります（外部送信はしません）')}</p>
         </div>
+        <Prefs />
       </header>
       {picker}
-      <main>
+      <main key={lang}>
         {!restored ? <Loading>{t('準備しています')}</Loading> : !current ? (
           <>
             <section className={'drop' + (drag ? ' over' : '')} onClick={() => input.current?.click()} data-testid="drop-zone"

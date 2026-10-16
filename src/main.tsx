@@ -12,4 +12,6 @@ import '@fontsource/ibm-plex-mono/500.css';
 import './tokens.css';
 import './app.css';
 import App from './App';
+import { initPrefs } from './i18n';
+initPrefs();
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>);

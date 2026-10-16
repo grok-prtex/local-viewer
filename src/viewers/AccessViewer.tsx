@@ -3,6 +3,7 @@ import MDBReader from 'mdb-reader';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
 import { t } from '../i18n';
+import { useColResize } from './colResize';
 
 const PAGE = 100;
 
@@ -56,13 +57,14 @@ export default function AccessViewer({ file }: { file: File }) {
       setOff(0);
       setErr('');
     } catch {
-      setErr('テーブル「' + cur + '」を読めませんでした。');
+      setErr(t('テーブル「{0}」を読めませんでした。', cur));
       setRows([]); setCols([]);
     }
   }, [cur, tables]);
 
   const page = useMemo(() => rows.slice(off, off + PAGE), [rows, off]);
 
+  const rz = useColResize(cols.length, `${cur}|${cols.join('\u0001')}`);
   if (err && !tables.length) return <ErrorBox>{err}</ErrorBox>;
   if (!tables.length) return <Progress p={prog} />;
 
@@ -95,11 +97,12 @@ export default function AccessViewer({ file }: { file: File }) {
         </aside>
         <div>
           <div className="sheetx dbgrid" data-testid="access-grid">
-            <table>
-              <thead><tr>{cols.map((c) => <th key={c} title={c}><span className="c">{c}</span></th>)}</tr></thead>
+            <table ref={rz.table} style={rz.tableStyle} className={rz.sized ? 'sized' : undefined}>
+              {rz.colgroup}
+              <thead><tr>{cols.map((c, i) => <th key={c} title={c}><span className="c">{c}</span>{rz.handle(i)}</th>)}</tr></thead>
               <tbody>
                 {page.map((r, i) => (
-                  <tr key={i}>{cols.map((c) => r[c] == null ? <td key={c}><span className="null">NULL</span></td> : <td key={c} title={cell(r[c])}><span className="c">{cell(r[c])}</span></td>)}</tr>
+                  <tr key={i}>{cols.map((c, ci) => r[c] == null ? <td key={c} data-ci={ci}><span className="null">NULL</span></td> : <td key={c} data-ci={ci} title={cell(r[c])}><span className="c">{cell(r[c])}</span></td>)}</tr>
                 ))}
               </tbody>
             </table>
