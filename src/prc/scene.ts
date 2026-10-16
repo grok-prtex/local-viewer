@@ -42,13 +42,15 @@ export function locationMatrix(loc: any): number[] {
   if (!t) return ID;
   const b = t.behavior ?? 0;
   const v = (p: any, d: number[]) => (p ? [p.x ?? 0, p.y ?? 0, p.z ?? 0] : d);
+  // 0x02 回転（X・Y 軸）、0x04 鏡映、0x08 一様拡大、0x10 非一様拡大、0x20 非直交行列（3 軸）
   let X = [1, 0, 0], Y = [0, 1, 0];
-  if (b & 2) { X = v(t.x_axis, X); Y = v(t.y_axis, Y); }
-  let Z = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]];
-  if (b & 4) Z = [-Z[0], -Z[1], -Z[2]];
+  let Z: number[] | null = null;
+  if (b & 32 && Array.isArray(t.non_ortho_matrix)) { X = v(t.non_ortho_matrix[0], X); Y = v(t.non_ortho_matrix[1], Y); Z = v(t.non_ortho_matrix[2], [0, 0, 1]); }
+  else if (b & 2 && Array.isArray(t.rotation)) { X = v(t.rotation[0], X); Y = v(t.rotation[1], Y); }
+  if (!Z) { Z = [X[1] * Y[2] - X[2] * Y[1], X[2] * Y[0] - X[0] * Y[2], X[0] * Y[1] - X[1] * Y[0]]; if (b & 4) Z = [-Z[0], -Z[1], -Z[2]]; }
   let s = [1, 1, 1];
-  if (b & 8) { const u = t.uniform_scale ?? 1; s = [u, u, u]; }
-  if (b & 16) s = v(t.scale, s);
+  if (b & 8 && typeof t.scale === 'number') s = [t.scale, t.scale, t.scale];
+  if (b & 16) s = v(t.non_uniform_scale, s);
   const T = b & 1 ? v(t.translation, [0, 0, 0]) : [0, 0, 0];
   return [X[0] * s[0], X[1] * s[0], X[2] * s[0], 0, Y[0] * s[1], Y[1] * s[1], Y[2] * s[1], 0, Z[0] * s[2], Z[1] * s[2], Z[2] * s[2], 0, T[0], T[1], T[2], 1];
 }
@@ -67,10 +69,13 @@ function styleColor(fs: PrcFS, biasedStyle: number): [number, number, number, nu
   if (!st) return fallback;
   let rgb: number[] | null = null;
   if (st.is_material) {
-    const m = g.materials?.[st.biased_color_index - 1];
-    const ci = m?.index_diffuse ?? m?.biased_index_diffuse ?? m?.index_ambient;
-    const c = typeof ci === 'number' ? g.colors?.[Math.floor(ci / 3)] ?? g.colors?.[Math.floor((ci - 1) / 3)] : null;
+    // 材質（Material）か、材質を指すテクスチャ適用（TextureApplication）。拡散色→環境色の順に使う
+    let m = g.materials?.[st.biased_color_index - 1]; m = m?.id ?? m;
+    for (let hop = 0; hop < 4 && m?._t === 'PRC_TYPE_GRAPH_TextureApplication'; hop++) { const n = g.materials?.[(m.biased_material_generic_index ?? 0) - 1]; m = n?.id ?? n; }
+    const ci = m?.biased_diffuse_index || m?.biased_ambient_index || 0;
+    const c = ci > 0 ? g.colors?.[Math.floor((ci - 1) / 3)] : null;
     if (c) rgb = [c.red, c.green, c.blue];
+    if (rgb && typeof m?.diffuse_alpha === 'number' && m.diffuse_alpha < 1 && !st.is_transparency) return [rgb[0], rgb[1], rgb[2], Math.max(0.15, m.diffuse_alpha)];
   } else if (st.biased_color_index > 0) {
     const c = g.colors?.[Math.floor((st.biased_color_index - 1) / 3)];
     if (c) rgb = [c.red, c.green, c.blue];
@@ -115,6 +120,8 @@ export async function buildPrcScene(buf: Uint8Array, onProgress?: (p: number, la
   const meshes: PrcMesh[] = [];
   // fs 番号・テッセレーション番号 → meshes の添字
   const meshOf = new Map<string, number>();
+  // メッシュの色枠ごとの線スタイル番号（0 = 面に色の指定なし → 親の指定を使う）
+  const styleSlots = new Map<number, number[]>();
   let total = 0, done = 0;
   for (const fs of file.fs) total += fs.tess.length;
   let verified = 0, tris = 0;
@@ -151,44 +158,87 @@ export async function buildPrcScene(buf: Uint8Array, onProgress?: (p: number, la
       tris += positions.length / 9;
       meshOf.set(`${fi}/${ti}`, meshes.length);
       meshes.push({ name: '', positions, normals, colorOfTriangle: cot, colors, matrix: ID, ok });
+      styleSlots.set(meshes.length - 1, [...colorIdx.keys()]);
     }
   }
 
   // 部品ツリー
   let tree: PrcNode | null = null;
-  const placed: { mesh: number; matrix: number[]; name: string }[] = [];
+  type Inh = { fi: number; s: number } | null;
+  const placed: { mesh: number; matrix: number[]; name: string; inh: Inh }[] = [];
+  // 図形属性（graphics）の線スタイル。面に無ければ RI → 部品 → 製品（親へ）の順に引き継ぎます
+  type GBase = { same_graphics?: boolean; graphics_content?: { biased_index_of_line_style?: number } } | undefined;
+  const gstyle = (o: GBase): number => (o?.same_graphics === false ? o.graphics_content?.biased_index_of_line_style ?? 0 : 0);
   try {
     const roots: PrcNode[] = [];
-    const visit = (fi: number, pi: number, M: number[], depth: number): PrcNode | null => {
-      const fs = file.fs[fi]; const pr = fs?.tree?.products?.[pi];
-      if (!pr || depth > 64) return null;
-      const MM = pr.has_transformation ? mul(M, locationMatrix(pr.location)) : M;
-      const node: PrcNode = { name: nameOf(pr) || `product ${pi + 1}`, meshes: [], children: [] };
+    // 別のファイル構造にある原型（prototype）は UUID で探します
+    const fsByUuid = new Map<string, number>();
+    file.fs.forEach((f, i) => { if (f.uuid) fsByUuid.set(f.uuid, i); });
+    type Uid = { unique_id0: number; unique_id1: number; unique_id2: number; unique_id3: number } | undefined;
+    const uid = (u: Uid) => (u ? [u.unique_id0, u.unique_id1, u.unique_id2, u.unique_id3].map((x: number) => x >>> 0).join(',') : '');
+    const fsOf = (cur: number, fid: { flag?: boolean; unique_id?: Uid } | undefined) => (!fid || fid.flag ? cur : fsByUuid.get(uid(fid.unique_id)) ?? -1);
+    const onPath = new Set<string>();
+    // 配置: 自分が持てばそれ、無ければ原型（prototype）の配置を引き継ぎます
+    const effLoc = (fi: number, pi: number, d: number): number[] => {
+      const pr = file.fs[fi]?.tree?.products?.[pi];
+      if (!pr || d > 32) return ID;
+      if (pr.has_transformation) return locationMatrix(pr.location);
       const ref = pr.references_product_occurrence ?? {};
-      const addPart = (bi: number) => {
-        const part = fs.tree?.parts?.[bi - 1]; if (!part) return;
-        const walk = (items: any[]) => {
-          for (const ri of items ?? []) {
-            const d = ri?.data ?? ri; const ic = d?.item_content;
-            if (d?.elements || d?.representation_items) walk(d.elements ?? d.representation_items);
-            const bt = ic?.biased_index_tessellation ?? 0;
-            if (bt > 0) {
-              const mi = meshOf.get(`${fi}/${bt - 1}`);
-              if (mi !== undefined) { node.meshes.push(placed.length); placed.push({ mesh: mi, matrix: MM, name: nameOf(ic) || nameOf(part) || node.name }); }
-            }
-          }
-        };
-        walk(part.representation_items);
-      };
-      if (ref.biased_index_part > 0) addPart(ref.biased_index_part);
-      if (ref.biased_index_prototype > 0) { const ch = visit(fi, ref.biased_index_prototype - 1, MM, depth + 1); if (ch) { node.meshes.push(...ch.meshes); node.children.push(...ch.children); } }
-      for (const ci of ref.index_child_occurrence ?? []) { const ch = visit(fi, ci, MM, depth + 1); if (ch) node.children.push(ch); }
-      return node;
+      if (ref.biased_index_prototype > 0) { const pf = fsOf(fi, ref.prototype_in_same_file_structure); if (pf >= 0) return effLoc(pf, ref.biased_index_prototype - 1, d + 1); }
+      return ID;
     };
-    file.fs.forEach((fs, fi) => {
+    let budget = 200000; // 異常なファイルでの爆発を防ぐ
+    const visit = (fi: number, pi: number, M: number[], depth: number, noKids = false, noPart = false, noLoc = false, inh: Inh = null): PrcNode | null => {
+      const fs = file.fs[fi]; const pr = fs?.tree?.products?.[pi];
+      const key = fi + '/' + pi;
+      if (!pr || depth > 64 || onPath.has(key) || --budget < 0) return null;
+      onPath.add(key);
+      try {
+        // 原型の配置は、参照する側が配置を持つときはそちらで置き換えます（二重に掛けない）
+        const MM = noLoc ? M : mul(M, effLoc(fi, pi, 0));
+        const node: PrcNode = { name: nameOf(pr) || '', meshes: [], children: [] };
+        const ref = pr.references_product_occurrence ?? {};
+        const own = gstyle(pr.base); const inhP: Inh = own ? { fi, s: own } : inh;
+        const addPart = (bi: number) => {
+          const part = fs.tree?.parts?.[bi - 1]; if (!part) return;
+          const ps = gstyle(part.base); const inhPart: Inh = ps ? { fi, s: ps } : inhP;
+          const walk = (items: any[], up: Inh) => {
+            for (const ri of items ?? []) {
+              const d = ri?.data ?? ri; const ic = d?.item_content;
+              const rs = gstyle(ic?.base); const inhRI: Inh = rs ? { fi, s: rs } : up;
+              if (d?.elements || d?.representation_items) walk(d.elements ?? d.representation_items, inhRI);
+              const bt = ic?.biased_index_tessellation ?? 0;
+              if (bt > 0) {
+                const mi = meshOf.get(`${fi}/${bt - 1}`);
+                if (mi !== undefined) { node.meshes.push(placed.length); placed.push({ mesh: mi, matrix: MM, name: nameOf(ic) || nameOf(part) || node.name, inh: inhRI }); }
+              }
+            }
+          };
+          walk(part.representation_items, inhPart);
+        };
+        if (ref.biased_index_part > 0 && !noPart) addPart(ref.biased_index_part);
+        if (ref.biased_index_prototype > 0) {
+          const pf = fsOf(fi, ref.prototype_in_same_file_structure);
+          const ch = pf >= 0 ? visit(pf, ref.biased_index_prototype - 1, MM, depth + 1, !!ref.index_child_occurrence?.length, ref.biased_index_part > 0, true, inhP) : null;
+          // 原型の部品・子は、この occurrence 自身が持たないときだけ引き継ぎます
+          if (ch) { if (!(ref.biased_index_part > 0)) node.meshes.push(...ch.meshes); if (!(ref.index_child_occurrence?.length)) node.children.push(...ch.children); if (!node.name) node.name = ch.name; }
+        }
+        if (!noKids) for (const ci of ref.index_child_occurrence ?? []) { const ch = visit(fi, ci, MM, depth + 1, false, false, false, inhP); if (ch) node.children.push(ch); }
+        if (!node.name) node.name = `product ${pi + 1}`;
+        return node;
+      } finally { onPath.delete(key); }
+    };
+    // まずモデルファイルの根（root）から辿り、無ければ各ファイル構造の親のない製品から辿ります
+    for (const po of file.model?.product_occurrences ?? []) {
+      const fi = fsByUuid.get(uid(po.unique_id));
+      if (fi === undefined) continue;
+      // root_index は 1 始まり（実ファイルでは製品数と同じ値＝最後の製品）
+      const n = visit(fi, po.root_index - 1, ID, 0); if (n) roots.push(n);
+    }
+    if (!roots.length) file.fs.forEach((fs, fi) => {
       const prods: any[] = fs.tree?.products ?? [];
       const isChild = new Set<number>();
-      prods.forEach((p) => { for (const c of p.references_product_occurrence?.index_child_occurrence ?? []) isChild.add(c); const pt = p.references_product_occurrence?.biased_index_prototype; if (pt > 0) isChild.add(pt - 1); });
+      prods.forEach((p) => { for (const c of p.references_product_occurrence?.index_child_occurrence ?? []) isChild.add(c); const r = p.references_product_occurrence; if (r?.biased_index_prototype > 0 && (!r.prototype_in_same_file_structure || r.prototype_in_same_file_structure.flag)) isChild.add(r.biased_index_prototype - 1); });
       prods.forEach((_, pi) => { if (!isChild.has(pi)) { const n = visit(fi, pi, ID, 0); if (n) roots.push(n); } });
     });
     const prune = (n: PrcNode): PrcNode | null => { n.children = n.children.map(prune).filter(Boolean) as PrcNode[]; return n.meshes.length || n.children.length ? n : null; };
@@ -200,7 +250,12 @@ export async function buildPrcScene(buf: Uint8Array, onProgress?: (p: number, la
   if (tree && placed.length) {
     // ツリーが参照しなかったメッシュも残す（取りこぼし防止）
     const used = new Set(placed.map((p) => p.mesh));
-    out = placed.map((p) => ({ ...meshes[p.mesh], matrix: p.matrix, name: p.name }));
+    out = placed.map((p) => {
+      const m = meshes[p.mesh]; const slots = styleSlots.get(p.mesh) ?? [];
+      // 面に色が無い枠だけ、引き継いだスタイルの色で置き換えます
+      const colors = p.inh && slots.some((x) => !x) ? m.colors.map((c, k) => (slots[k] ? c : styleColor(file.fs[p.inh!.fi], p.inh!.s))) : m.colors;
+      return { ...m, colors, matrix: p.matrix, name: p.name };
+    });
     const rest = meshes.map((_m, i) => (used.has(i) ? -1 : i)).filter((i) => i >= 0);
     if (rest.length) { const n: PrcNode = { name: 'other meshes', meshes: [], children: [] }; for (const i of rest) { n.meshes.push(out.length); out.push({ ...meshes[i], name: `mesh ${i + 1}` }); } tree.children.push(n); }
   } else {

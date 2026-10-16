@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'fs';
 import { expandTess3D, locationMatrix, buildPrcScene } from './scene';
 import { find3DStreams } from '../pdf3d';
+import { B, R } from './bits';
 
 describe('PRC TESS_3D', () => {
   it('expands triangles, fans and strips with per-vertex normals', () => {
@@ -21,6 +22,23 @@ describe('PRC TESS_3D', () => {
     expect(locationMatrix({ transform: { behavior: 1, translation: { x: 1, y: 2, z: 3 } } }).slice(12, 15)).toEqual([1, 2, 3]);
     const g = Array.from({ length: 16 }, (_, i) => i);
     expect(locationMatrix({ general_transform: g })).toEqual(g);
+    // 回転（X=(0,1,0), Y=(-1,0,0)）と一様拡大 2
+    const m = locationMatrix({ transform: { behavior: 2 | 8, rotation: [{ x: 0, y: 1, z: 0 }, { x: -1, y: 0, z: 0 }], scale: 2 } });
+    expect(m.slice(0, 3)).toEqual([0, 2, 0]);
+    expect(m.slice(4, 7)).toEqual([-2, 0, 0]);
+    expect(m.slice(8, 11).map((x) => x + 0)).toEqual([0, 0, 2]);
+  });
+});
+
+describe('PRC bit reader', () => {
+  it('reads the terminating 0 bit after a 4-byte UnsignedInteger', () => {
+    // 1 + 8 ビット × 4（0x40000000）＋終端 0、続けて 1 + 0x05 + 終端 0
+    const bits = '1' + '00000000' + '1' + '00000000' + '1' + '00000000' + '1' + '01000000' + '0' + '1' + '00000101' + '0';
+    const bytes = new Uint8Array(Math.ceil(bits.length / 8));
+    for (let i = 0; i < bits.length; i++) if (bits[i] === '1') bytes[i >> 3] |= 0x80 >> (i & 7);
+    const r = new R(bytes);
+    expect(B.UnsignedInteger(r)).toBe(0x40000000);
+    expect(B.UnsignedInteger(r)).toBe(5);
   });
 });
 
