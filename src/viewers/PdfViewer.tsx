@@ -27,7 +27,7 @@ export default function PdfViewer({ file }: { file: File }) {
     const st = ['読み込み中', '解析中', '描画中'] as const;
     readWithProgress(file, (pct) => alive && setProg({ stage: '読み込み中', pct, stages: st })).then((buf) => {
       if (alive) setProg({ stage: '解析中', stages: st });
-      extract3D(new Uint8Array(buf.slice(0))).then((m) => { if (alive && m) { setModel(m); setMode(m.kind === 'U3D' ? '3d' : 'pages'); } }).catch(() => {});
+      extract3D(new Uint8Array(buf.slice(0))).then((m) => { if (alive && m) { setModel(m); setMode('3d'); } }).catch(() => {});
       return buf;
     }).then((buf) => { const t = pdfjs.getDocument({
       data: new Uint8Array(buf),
@@ -117,7 +117,7 @@ export default function PdfViewer({ file }: { file: File }) {
         <button role="tab" aria-selected={mode === 'pages'} onClick={() => setMode('pages')}>{t('PDF ページ')}</button>
         <button role="tab" aria-selected={mode === '3d'} onClick={() => setMode('3d')} data-testid="tab-3d">{t('3D モデル')}</button>
       </div>
-      <span className="hint-inline">{model.kind === 'U3D' ? t('この PDF には 3D モデル（U3D 形式）が含まれています。') : t('この3DPDF（PRC形式）はまだ未対応です。ページは表示できます。')}</span>
+      <span className="hint-inline">{model.kind === 'U3D' ? t('この PDF には 3D モデル（U3D 形式）が含まれています。') : t('この PDF には 3D モデル（PRC 形式）が含まれています。')}</span>
     </div>
   );
   if (model && mode === '3d') return (

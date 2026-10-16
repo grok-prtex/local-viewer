@@ -5,3 +5,8 @@ src/u3d/bitstream.ts と src/u3d/parse.ts は、Intel Corporation の
 CIFXBitStreamX / IFXHistogramDynamic / CIFXAuthorCLODDecoder を参考に、
 TypeScript で書き直したものです（https://github.com/ningfei/u3d ほか）。
 Copyright (c) 1999 - 2006 Intel Corporation. Licensed under the Apache License, Version 2.0.
+
+src/prc/gen.ts（scripts/prc/gen.py が生成）と src/prc/bits.ts・huffman.ts・schema.ts・doubleTable.ts は、
+prc-rs の PRC 構造定義 prc.json と読み取り手順をもとに TypeScript で書いたものです。
+Copyright (c) 2025-2026 Kristóf Ralovich. Licensed under the MIT License.
+src/prc/tess3dc.ts（PRC 圧縮メッシュの復元）は ISO 14739-1 と PDF Association の公開議論にもとづく独自実装です。
