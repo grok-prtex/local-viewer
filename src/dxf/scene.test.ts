@@ -33,3 +33,15 @@ describe('DXF 文字・寸法', () => {
     expect(strs(buildScene(load('dxf/sjis-r12.dxf')))).toContain('シフトJIS 古いDXF 図面');
   });
 });
+
+import { adjust, BG_RGB, lum, MIN_CONTRAST } from './color';
+import * as THREE from 'three';
+describe('DXF 色のコントラスト', () => {
+  const cr = (a: THREE.Color, b: THREE.Color) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  it('黄(ACI 2)・シアン(4)など淡い色はライト背景で濃くなり、暗い青はダーク背景で明るくなる', () => {
+    for (const rgb of [0xffff00, 0x00ffff, 0x00ff00, 0xff00ff, 0xff0000])
+      expect(cr(adjust(rgb, 'light'), new THREE.Color(BG_RGB.light)), rgb.toString(16)).toBeGreaterThanOrEqual(MIN_CONTRAST - 0.01);
+    expect(cr(adjust(0x0000ff, 'dark'), new THREE.Color(BG_RGB.dark))).toBeGreaterThanOrEqual(MIN_CONTRAST - 0.01);
+    expect(adjust(0xffffff, 'light').getHex()).toBe(0x2a2e32);
+  });
+});

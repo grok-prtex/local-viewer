@@ -76,7 +76,9 @@ test.describe('列幅変更', () => {
     await expect(h).toHaveClass(/active/);
     await page.mouse.up();
     const w1 = (await th.boundingBox())!.width;
-    expect(w1).toBeGreaterThan(w0 + 120);
+    expect(w1).toBeGreaterThan(Math.min(w0, 60) + 120);
+    // 初回の固定幅化で、ほかの列は内容に合った幅になる（id 列が広く残らない）
+    expect((await grid.locator('thead th').first().boundingBox())!.width).toBeLessThan(70);
     await page.screenshot({ path: `${SHOTS}/colresize-db-after.png` });
     const b2 = (await h.boundingBox())!;
     await page.mouse.move(b2.x + b2.width / 2, b2.y + 5); await page.mouse.down(); await page.mouse.move(b2.x - 900, b2.y + 5, { steps: 5 }); await page.mouse.up();
@@ -85,6 +87,15 @@ test.describe('列幅変更', () => {
     const wa = (await th.boundingBox())!.width; expect(wa).toBeGreaterThan(45);
     await h.focus(); await page.keyboard.press('ArrowRight');
     expect((await th.boundingBox())!.width).toBeGreaterThan(wa + 5);
+  });
+  test('DXF ライト背景で黄色の文字・線を濃く表示', async ({ page }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.goto('/');
+    await page.getByTestId('file-input').setInputFiles(path.join(FX, 'dxf/jp-titleblock.dxf'));
+    await page.locator('[data-rendered=true]').waitFor();
+    await page.getByTestId('dxf-space').click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SHOTS}/dxf-light-contrast.png` });
   });
   test('CSV：列見出しの境界をドラッグ', async ({ page }) => {
     await page.goto('/');

@@ -7,17 +7,10 @@ import { Loading, ErrorBox } from '../ui';
 import { resolvedTheme, t } from '../i18n';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-type Bg = 'light' | 'dark' | 'jade';
+import { adjust, BG_RGB, type Bg } from '../dxf/color';
 const DIM_MIN_PX = 10;
 const FONT = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Noto Sans CJK JP","Yu Gothic","Meiryo",sans-serif';
 /** 背景に合わせて線・文字の色を読みやすく調整します */
-function adjust(rgb: number, m: Bg): THREE.Color {
-  if (rgb === 0xffffff || rgb === 0) return new THREE.Color(m === 'dark' ? 0xe8ebe6 : 0x2a2e32);
-  const c = new THREE.Color(rgb); const hsl = { h: 0, s: 0, l: 0 }; c.getHSL(hsl);
-  if (m === 'dark') { if (hsl.l < 0.35) c.setHSL(hsl.h, hsl.s, 0.6); }
-  else if (hsl.l > 0.42) c.setHSL(hsl.h, Math.min(1, hsl.s), 0.36);
-  return c;
-}
 /** MTEXT の幅指定に合わせて折り返します（ctx は基準 100px のフォント） */
 function wrapLines(ctx: CanvasRenderingContext2D, t: TextItem): string[] {
   const lines = t.s.split('\n');
@@ -147,7 +140,7 @@ export default function DxfViewer({ file }: { file: File }) {
       cam.left = -w * half; cam.right = w * half; cam.top = h * half; cam.bottom = -h * half; cam.zoom = 1;
       cam.position.set(c.x, c.y, 10); controls.target.set(c.x, c.y, 0); cam.updateProjectionMatrix(); controls.update();
     };
-    const BGS = { light: 0xf4f5f3, dark: 0x1e2124, jade: 0xe8f0ec } as const;
+    const BGS = BG_RGB;
     const orig = new Map([...mats.entries()].map(([k, x]) => [x, +k]));
     // 明るい背景では、黄色・シアンなど明るい線色を暗くして読みやすくします
     const setBg = (m: Bg) => {
