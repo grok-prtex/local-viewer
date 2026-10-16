@@ -6,7 +6,7 @@ import { R } from './bits';
 import * as G from './gen';
 import { evalSchema } from './schema';
 
-export interface PrcFS { tree: any; tess: any[]; globals: any; error?: string }
+export interface PrcFS { tree: any; tess: any[]; globals: any; error?: string; uuid?: string }
 export interface PrcFile { version: number; fs: PrcFS[]; model: any; hasGeometry: boolean[]; warnings: string[] }
 
 function u32(b: Uint8Array, o: number) { return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0; }
@@ -64,11 +64,12 @@ export async function parsePrc(buf: Uint8Array, opts: { onProgress?: (p: number)
   let o = 3 + 4 + 4 + 16 + 16;
   const nfs = u32(buf, o); o += 4;
   if (nfs > 10000) throw new Error('PRC: bad header');
-  const fsd: { offsets: number[] }[] = [];
+  const fsd: { offsets: number[]; uuid: string }[] = [];
   for (let i = 0; i < nfs; i++) {
+    const uuid = [0, 4, 8, 12].map((k) => u32(buf, o + k)).join(',');
     o += 16 + 4; const nsec = u32(buf, o); o += 4;
     const offsets: number[] = []; for (let j = 0; j < nsec; j++) { offsets.push(u32(buf, o)); o += 4; }
-    fsd.push({ offsets });
+    fsd.push({ offsets, uuid });
   }
   const mfStart = u32(buf, o), mfEnd = u32(buf, o + 4);
   const all = [...fsd.flatMap((f) => f.offsets), mfStart, mfEnd, buf.length].sort((a, b) => a - b);
@@ -79,7 +80,7 @@ export async function parsePrc(buf: Uint8Array, opts: { onProgress?: (p: number)
   const fs: PrcFS[] = []; const hasGeometry: boolean[] = [];
   for (let i = 0; i < nfs; i++) {
     const off = fsd[i].offsets; // [header, globals, tree, tess, geom, extgeom]
-    const item: PrcFS = { tree: null, tess: [], globals: null };
+    const item: PrcFS = { tree: null, tess: [], globals: null, uuid: fsd[i].uuid };
     try {
       ctx.schema = new Map();
       const g = new R(await sec(off[1])); readSchema(g, ctx); item.globals = G.r_PRC_TYPE_ASM_FileStructureGlobals(g, ctx);

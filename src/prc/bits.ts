@@ -55,7 +55,8 @@ function readDouble(r: R): number {
 
 function uint(r: R): number {
   let v = 0, i = 0;
-  while (i < 4 && r.bit()) { v += r.bits(8) * 2 ** (8 * i); i++; }
+  // 終端の 0 ビットは 4 バイト読んだ後も必ず続きます
+  while (r.bit()) { if (i >= 4) throw new Error('PRC: bad uint'); v += r.bits(8) * 2 ** (8 * i); i++; }
   return v >>> 0;
 }
 function int(r: R): number {
