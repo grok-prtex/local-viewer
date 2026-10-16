@@ -1,8 +1,10 @@
 import { useMemo } from 'react';
+import type { MailAddr } from '../mailHeaders';
+import Recipients from './Recipients';
 
 export interface MailAttachment { name: string; mime: string; data: Uint8Array; }
 export interface MailData {
-  subject: string; from: string; to: string; cc: string; date: string;
+  subject: string; from: MailAddr[]; to: MailAddr[]; cc: MailAddr[]; date: string;
   html?: string; text?: string; attachments: MailAttachment[];
 }
 
@@ -38,9 +40,9 @@ export default function MailView({ mail, inlineImages, onOpen, canOpen }: {
     <div className="mail">
       <dl className="mail-head">
         <dt>件名</dt><dd className="subject">{mail.subject || '（件名なし）'}</dd>
-        <dt>差出人</dt><dd>{mail.from}</dd>
-        <dt>宛先</dt><dd>{mail.to}</dd>
-        {mail.cc && <><dt>CC</dt><dd>{mail.cc}</dd></>}
+        <dt>差出人</dt><dd><Recipients list={mail.from} testid="mail-from" /></dd>
+        <dt>宛先</dt><dd><Recipients list={mail.to} testid="mail-to" /></dd>
+        {mail.cc.length > 0 && <><dt>CC</dt><dd><Recipients list={mail.cc} testid="mail-cc" /></dd></>}
         <dt>日時</dt><dd>{mail.date}</dd>
       </dl>
       {mail.attachments.length > 0 && (

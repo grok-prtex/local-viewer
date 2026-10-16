@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import MsgReader from '@kenjiuno/msgreader';
 import MailView, { MailData, MailAttachment } from './Mail';
 import { Loading, ErrorBox } from '../ui';
+import type { MailAddr } from '../mailHeaders';
 
 export default function MsgViewer({ file, onOpen, canOpen }: { file: File; onOpen: (f: File) => void; canOpen: (n: string, d: Uint8Array) => boolean }) {
   const [mail, setMail] = useState<MailData | null>(null);
@@ -14,7 +15,8 @@ export default function MsgViewer({ file, onOpen, canOpen }: { file: File; onOpe
       const d = r.getFileData();
       if (d.error) throw new Error(d.error);
       const rec = (t: string) => (d.recipients ?? []).filter((x) => (x.recipType ?? 'to') === t)
-        .map((x) => (x.name && x.email && x.name !== x.email ? `${x.name} <${x.email}>` : x.email || x.name)).join(', ');
+        .map((x): MailAddr => ({ name: x.name && x.name !== x.email ? x.name : '', address: x.smtpAddress || x.email || '' }))
+        .filter((x) => x.name || x.address);
       let html: string | undefined = d.bodyHtml;
       if (!html && d.html) html = new TextDecoder().decode(d.html);
       const atts: MailAttachment[] = []; const inl = new Map<string, MailAttachment>();
@@ -29,7 +31,7 @@ export default function MsgViewer({ file, onOpen, canOpen }: { file: File; onOpe
       setInline(inl);
       setMail({
         subject: d.subject ?? '',
-        from: d.senderName ? `${d.senderName}${d.senderSmtpAddress || d.senderEmail ? ` <${d.senderSmtpAddress || d.senderEmail}>` : ''}` : d.senderEmail ?? '',
+        from: (() => { const address = d.senderSmtpAddress || d.senderEmail || ''; const name = d.senderName && d.senderName !== address ? d.senderName : ''; return name || address ? [{ name, address }] : []; })(),
         to: rec('to'), cc: rec('cc'),
         date: d.messageDeliveryTime || d.clientSubmitTime ? new Date((d.messageDeliveryTime || d.clientSubmitTime)!).toLocaleString('ja-JP') : '',
         html, text: d.body, attachments: atts,

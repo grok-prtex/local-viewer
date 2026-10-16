@@ -74,8 +74,8 @@ export default function AccessViewer({ file }: { file: File }) {
           <ul data-testid="access-tables">
             {tables.map((n) => (
               <li key={n}>
-                <button className={cur === n ? 'on' : ''} onClick={() => setCur(n)}>
-                  {n}
+                <button className={cur === n ? 'on' : ''} onClick={() => setCur(n)} title={n}>
+                  <span className="tname">{n}</span>
                   <span className="mono">{counts[n] != null ? `${counts[n]} 行` : ''}</span>
                 </button>
               </li>
@@ -93,12 +93,12 @@ export default function AccessViewer({ file }: { file: File }) {
           </label>
         </aside>
         <div>
-          <div className="sheetx" data-testid="access-grid">
+          <div className="sheetx dbgrid" data-testid="access-grid">
             <table>
-              <thead><tr>{cols.map((c) => <th key={c} className="mono">{c}</th>)}</tr></thead>
+              <thead><tr>{cols.map((c) => <th key={c} title={c}><span className="c">{c}</span></th>)}</tr></thead>
               <tbody>
                 {page.map((r, i) => (
-                  <tr key={i}>{cols.map((c) => <td key={c} className="mono">{cell(r[c])}</td>)}</tr>
+                  <tr key={i}>{cols.map((c) => r[c] == null ? <td key={c}><span className="null">NULL</span></td> : <td key={c} title={cell(r[c])}><span className="c">{cell(r[c])}</span></td>)}</tr>
                 ))}
               </tbody>
             </table>

@@ -1,0 +1,9 @@
+From: 営業部 高橋 <takahashi@example.co.jp>
+To: 取引先 御中 <client@example.com>
+Subject: 生ヘッダーの件名（Shift_JIS）
+Date: Fri, 16 Oct 2026 11:00:00 +0900
+MIME-Version: 1.0
+Content-Type: text/plain; charset=Shift_JIS
+Content-Transfer-Encoding: 8bit
+
+本文です。

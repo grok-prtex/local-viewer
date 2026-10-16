@@ -82,7 +82,7 @@ export default function SqlViewer({ file }: { file: File }) {
           <div className="label mono">TABLES · {meta.tables.length}</div>
           <ul data-testid="sql-tables">
             {meta.tables.map((t) => (
-              <li key={t.name}><button className={cur === t.name ? 'on' : ''} onClick={() => { setCur(t.name); setOff(0); setSql(''); setErr(''); }}>{t.name}<span className="mono">{t.type}{meta.counts[t.name] != null ? ` · ${meta.counts[t.name]}` : ''}</span></button></li>
+              <li key={t.name}><button className={cur === t.name ? 'on' : ''} onClick={() => { setCur(t.name); setOff(0); setSql(''); setErr(''); }} title={t.name}><span className="tname">{t.name}</span><span className="mono">{t.type}{meta.counts[t.name] != null ? ` · ${meta.counts[t.name]}` : ''}</span></button></li>
             ))}
           </ul>
         </aside>
@@ -100,12 +100,12 @@ export default function SqlViewer({ file }: { file: File }) {
             <button onClick={runSql} data-testid="sql-run">実行</button>
           </div>
           {rows && (
-            <div className="sheetx" data-testid="sql-grid">
+            <div className="sheetx dbgrid" data-testid="sql-grid">
               <table>
-                <thead><tr>{rows.cols.map((c) => <th key={c} className="mono">{c}</th>)}</tr></thead>
+                <thead><tr>{rows.cols.map((c) => <th key={c} title={c}><span className="c">{c}</span></th>)}</tr></thead>
                 <tbody>
                   {rows.values.map((r, i) => (
-                    <tr key={i}>{r.map((v, j) => <td key={j} className="mono">{v == null ? 'NULL' : v instanceof Uint8Array ? `BLOB（${v.length} バイト）` : String(v)}</td>)}</tr>
+                    <tr key={i}>{r.map((v, j) => { const txt = v instanceof Uint8Array ? `BLOB（${v.length} バイト）` : String(v); return v == null ? <td key={j}><span className="null">NULL</span></td> : <td key={j} title={txt}><span className="c">{txt}</span></td>; })}</tr>
                   ))}
                 </tbody>
               </table>
