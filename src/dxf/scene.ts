@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { cleanMText, cleanText } from './parse';
 
+/** 2 本の方向のなす角（ラジアン、0〜π） */
+const angBetween = (ax: number, ay: number, bx: number, by: number) => Math.acos(Math.max(-1, Math.min(1, (ax * bx + ay * by) / ((Math.hypot(ax, ay) * Math.hypot(bx, by)) || 1))));
+
 export type P = { x: number; y: number };
 export type Seg = { layer: string; color: number; pts: P[] };
 /** 画面に描く文字。x,y は基準点（ワールド座標）、h は文字高さ、rot はラジアン */
@@ -139,7 +142,14 @@ export function buildScene(dxf: any, mode: 'model' | 'paper' = 'model'): DxfScen
           if (blk?.entities?.length) { walk(blk.entities, m, depth + 1, layer, color, true); break; }
           // 匿名ブロックが無い：寸法線・矢印・寸法値を自前で描きます
           const t = e.dimensionType & 7, p13 = e.linearOrAngularPoint1, p14 = e.linearOrAngularPoint2, p10 = e.anchorPoint;
-          const label = (v: number, pre = '') => { const s = e.text && e.text !== '<>' ? e.text.replace('<>', pre + fmtNum(v)) : pre + fmtNum(v); return e.text === ' ' ? '' : cleanMText(s); };
+          // 42（実測値）は省略や -1（未計算。QCAD などが書く）のことがあるため、そのときは図形から測り直します
+          const am = typeof e.actualMeasurement === 'number' && Number.isFinite(e.actualMeasurement) && e.actualMeasurement >= 0 ? e.actualMeasurement : undefined;
+          const label = (v: number, pre = '') => {
+            // 上書き文字に「R<>」「%%c<>」のように記号が書いてあれば、自動の記号は重ねません
+            const own = e.text && e.text.includes('<>') && /(R|%%[cC]|[⌀Øø])\s*<>/.test(e.text);
+            const num = (own ? '' : pre) + fmtNum(v);
+            const s = e.text && e.text !== '<>' ? e.text.replace('<>', num) : num; return e.text === ' ' ? '' : cleanMText(s);
+          };
           if ((t === 0 || t === 1) && p13 && p14 && p10) {
             let ux: number, uy: number;
             if (t === 1) { const L = Math.hypot(p14.x - p13.x, p14.y - p13.y) || 1; ux = (p14.x - p13.x) / L; uy = (p14.y - p13.y) / L; }
@@ -147,16 +157,22 @@ export function buildScene(dxf: any, mode: 'model' | 'paper' = 'model'): DxfScen
             const proj = (p: P) => { const k = (p.x - p10.x) * ux + (p.y - p10.y) * uy; return { x: p10.x + ux * k, y: p10.y + uy * k }; };
             const q1 = proj(p13), q2 = proj(p14);
             add([p13, q1]); add([p14, q2]); add([q1, q2]); arrow(q1, q2, dimAsz); arrow(q2, q1, dimAsz);
-            const meas = e.actualMeasurement ?? Math.abs((p14.x - p13.x) * ux + (p14.y - p13.y) * uy);
+            const meas = am ?? Math.abs((p14.x - p13.x) * ux + (p14.y - p13.y) * uy);
             const at = e.middleOfText ?? { x: (q1.x + q2.x) / 2, y: (q1.y + q2.y) / 2 };
             let deg = (Math.atan2(uy, ux) * 180) / Math.PI; if (deg > 90.001 || deg < -89.999) deg += 180;
             text(label(meas), at, dimTxt, deg, 1, e.middleOfText ? 'middle' : 'bottom');
           } else if ((t === 3 || t === 4) && p10 && e.diameterOrRadiusPoint) {
             const p15 = e.diameterOrRadiusPoint; add([p10, p15]); arrow(p15, p10, dimAsz);
-            const meas = e.actualMeasurement ?? Math.hypot(p15.x - p10.x, p15.y - p10.y);
+            const meas = am ?? Math.hypot(p15.x - p10.x, p15.y - p10.y);
             text(label(meas, t === 3 ? '⌀' : 'R'), e.middleOfText ?? p15, dimTxt, 0, 1, 'middle');
-          } else if (e.middleOfText && e.actualMeasurement != null) {
-            text(label(t === 2 || t === 5 ? (e.actualMeasurement * 180) / Math.PI : e.actualMeasurement, ''), e.middleOfText, dimTxt, 0, 1, 'middle');
+          } else if (e.middleOfText) {
+            let v = am;
+            const p15 = e.diameterOrRadiusPoint;
+            if (v == null && t === 5 && p13 && p14 && p15) v = angBetween(p13.x - p15.x, p13.y - p15.y, p14.x - p15.x, p14.y - p15.y);
+            else if (v == null && t === 2 && p13 && p14 && p10 && p15) v = angBetween(p14.x - p13.x, p14.y - p13.y, p15.x - p10.x, p15.y - p10.y);
+            else if (v == null && t === 6 && p13 && p10) v = Math.abs((e.dimensionType & 64) ? p13.x - p10.x : p13.y - p10.y);
+            if (v != null) text(label(t === 2 || t === 5 ? (v * 180) / Math.PI : v, ''), e.middleOfText, dimTxt, 0, 1, 'middle');
+            else skip('DIMENSION');
           } else skip('DIMENSION');
           break;
         }

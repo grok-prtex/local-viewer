@@ -11,6 +11,10 @@ describe('DXF 文字・寸法', () => {
     expect(cleanMText('{\\fMS Gothic|b1;注記}\\P1. \\U+2300 10 \\S+0.1^-0.0; \\C1;赤')).toBe('注記\n1. ⌀ 10 +0.1/-0.0 赤');
     expect(cleanText('%%c30 %%p0.1 45%%d')).toBe('⌀30 ±0.1 45°');
     expect(cleanMText('A\\~B \\\\ \\{x\\}')).toBe('A\u00a0B \\ {x}');
+    // AIGDT フォントの n は ⌀。公差の積み重ねは数字と離す（rt-net/crane_x7_Hardware の図面の書き方）
+    expect(cleanMText('{8-\\fAIGDT|b0|i0;\\H4.5000;n\\fTahoma|b0|i0;\\H4.5000;2.5 貫通}')).toBe('8-⌀2.5 貫通');
+    expect(cleanMText('{\\A1;\\fTahoma|b0|i0;\\H4.5;\\fAIGDT|b0|i0;\\H4.5;n\\fTahoma|b0|i0;\\H4.5;10\\S0.050^ 0; 貫通}')).toBe('⌀10 0.050/ 0 貫通');
+    expect(cleanMText('{\\fgdt;j}{\\fArial;n}')).toBe('⌖n');
   });
   it('図枠ブロックの属性・TEXT・MTEXT・寸法・引出線を出す', () => {
     const d = load('dxf/jp-titleblock.dxf');
@@ -28,6 +32,17 @@ describe('DXF 文字・寸法', () => {
     const sc = buildScene(load('dxf/dim-noblock.dxf'));
     expect(strs(sc)).toEqual(expect.arrayContaining(['100', '50']));
     expect(sc.segs.length).toBeGreaterThan(6);
+  });
+  it('実測値が -1（未計算）の寸法は図形から測り直し、R<> の記号を重ねない', () => {
+    const dim = (pairs: [number, string | number][]) => ['0', 'DIMENSION', '8', 'dim', ...pairs.flatMap(([c, v]) => [String(c), String(v)])].join('\n');
+    const src = ['0', 'SECTION', '2', 'ENTITIES',
+      dim([[10, 0], [20, 10], [11, 21], [21, 10], [70, 32], [42, -1], [13, 0], [23, 0], [14, 42], [24, 0]]),
+      dim([[10, 0], [20, 0], [11, 3], [21, 3], [70, 36], [1, 'R<>'], [42, -1], [15, 6], [25, 8]]),
+      dim([[10, 0], [20, 0], [11, 3], [21, 3], [70, 35], [42, -1], [15, 20], [25, 0]]),
+      '0', 'ENDSEC', '0', 'EOF'].join('\n');
+    const s = strs(buildScene(parseDxf(src)));
+    expect(s).toEqual(expect.arrayContaining(['42', 'R10', '⌀20']));
+    expect(s.join('|')).not.toMatch(/-1|RR/);
   });
   it('Shift_JIS の古い DXF', () => {
     expect(strs(buildScene(load('dxf/sjis-r12.dxf')))).toContain('シフトJIS 古いDXF 図面');

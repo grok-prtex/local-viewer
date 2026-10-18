@@ -6,7 +6,12 @@ export const RAW_EXTS = ['cr2', 'cr3', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'dng',
 export const VIDEO_EXTS = ['mp4', 'm4v', 'mov', 'webm', 'mkv', 'avi', 'wmv', 'flv', 'mpg', 'mpeg', 'ts', 'm2ts', 'mts', '3gp', 'ogv'];
 export const AUDIO_EXTS = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'flac', 'wma'];
 
-const ascii = (b: Uint8Array, s: number, n: number) => String.fromCharCode(...b.subarray(s, s + n));
+/** バイト列を 1 バイト 1 文字の文字列に（大きい範囲でも引数の上限を超えないよう 32 KB ずつ） */
+const ascii = (b: Uint8Array, s: number, n: number) => {
+  const sub = b.subarray(s, s + n); let out = '';
+  for (let i = 0; i < sub.length; i += 0x8000) out += String.fromCharCode(...sub.subarray(i, i + 0x8000));
+  return out;
+};
 
 /** ISO BMFF（ftyp）のブランドを返します */
 export function ftypBrand(h: Uint8Array): string | null {

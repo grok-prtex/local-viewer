@@ -29,13 +29,21 @@ export function cleanText(s: string): string {
 }
 
 /** MTEXT の書式コード（\P \f \H \C \S {…} など）を取り除き、改行は \n にします */
+/** GDT 系フォント（AIGDT / AMGDT / GDT）は英小文字の位置に幾何公差・穴の記号を持つため、Unicode の記号に置き換えます */
+const GDT: Record<string, string> = {
+  a: '∠', b: '⟂', c: '⏥', d: '⌓', e: '○', f: '∥', g: '⌭', h: '↗', i: '⌯', j: '⌖', k: '⌒', l: 'Ⓛ', m: 'Ⓜ', n: '⌀',
+  p: 'Ⓟ', r: '◎', s: 'Ⓢ', t: '⌰', u: '⏤', v: '⌴', w: '⌵', x: '↧', y: '⊳',
+};
+
 export function cleanMText(s: string): string {
   let out = '';
+  let gdt = false; const stack: boolean[] = [];
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
-    if (ch === '{' || ch === '}') continue;
+    if (ch === '{') { stack.push(gdt); continue; }
+    if (ch === '}') { gdt = stack.pop() ?? false; continue; }
     if (ch === '^' && i + 1 < s.length) { const n = s[i + 1]; if (n === 'J' || n === 'M') { out += '\n'; i++; continue; } if (n === 'I') { out += ' '; i++; continue; } }
-    if (ch !== '\\') { out += ch; continue; }
+    if (ch !== '\\') { out += gdt ? (GDT[ch] ?? ch) : ch; continue; }
     const c = s[++i];
     if (c === undefined) break;
     if (c === 'P' || c === 'X') out += '\n';
@@ -44,8 +52,14 @@ export function cleanMText(s: string): string {
     else if (c === '\\' || c === '{' || c === '}') out += c;
     else if (c === 'U' && s[i + 1] === '+') { out += String.fromCodePoint(parseInt(s.substr(i + 2, 4), 16)); i += 5; }
     else if (c === 'M' && s[i + 1] === '+') { const h = s.substr(i + 3, 4); out += sjis.decode(new Uint8Array([parseInt(h.slice(0, 2), 16), parseInt(h.slice(2), 16)])); i += 6; }
-    else if (c === 'S') { const e = s.indexOf(';', i); const body = s.slice(i + 1, e < 0 ? undefined : e); out += body.replace(/[\^#]/, '/').replace(/^\//, '').replace(/\/\s*$/, ''); i = e < 0 ? s.length : e; }
-    else if ('fFHWQTACcpa'.includes(c)) { const e = s.indexOf(';', i); i = e < 0 ? s.length : e; }
+    else if (c === 'S') {
+      const e = s.indexOf(';', i); const body = s.slice(i + 1, e < 0 ? undefined : e);
+      const st = body.replace(/[\^#]/, '/').replace(/^\//, '').replace(/\/\s*$/, '');
+      // 公差の積み重ね（10\S+0.05^0;）を「100.05」のように数字とくっつけない
+      out += (/[0-9A-Za-z]$/.test(out) && st ? ' ' : '') + st; i = e < 0 ? s.length : e;
+    }
+    else if (c === 'f' || c === 'F') { const e = s.indexOf(';', i); const name = s.slice(i + 1, e < 0 ? undefined : e).split('|')[0].trim(); gdt = /^(ai|am)?gdt(\.shx)?$/i.test(name); i = e < 0 ? s.length : e; }
+    else if ('HWQTACcpa'.includes(c)) { const e = s.indexOf(';', i); i = e < 0 ? s.length : e; }
     else if ('LlOoKk'.includes(c)) { /* 下線などの切替 */ }
     else out += c;
   }
