@@ -130,7 +130,7 @@ export default function App() {
                 {stack.length > 1 && <button className="ghost" onClick={() => setStack((s) => s.slice(0, -1))}>{t('戻る')}</button>}
                 <div>
                   <div className="fname" data-testid="file-name">{current.file.name}</div>
-                  <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : (formatInfo(current.kind) ? t(formatInfo(current.kind)!.label) : null)) ?? (extOf(current.file.name).toUpperCase() || t('不明な形式'))} · {size(current.file.size)}</div>
+                  <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : (formatInfo(current.kind, extOf(current.file.name)) ? t(formatInfo(current.kind, extOf(current.file.name))!.label) : null)) ?? (extOf(current.file.name).toUpperCase() || t('不明な形式'))} · {size(current.file.size)}</div>
                 </div>
               </div>
               <div className="head-actions">

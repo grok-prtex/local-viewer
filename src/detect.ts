@@ -30,11 +30,11 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
   { kind: 'text', label: 'テキスト・ログ・設定', group: 'Text', exts: ['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env'], ready: true },
   { kind: 'text', label: 'Markdown', group: 'Text', exts: ['md'], ready: true },
-  { kind: 'text', label: 'JSON / XML / YAML', group: 'Text', exts: ['json', 'xml', 'yaml', 'yml'], ready: true },
+  { kind: 'text', label: 'JSON / JSON Lines / XML / YAML', group: 'Text', exts: ['json', 'jsonl', 'ndjson', 'xml', 'yaml', 'yml'], ready: true },
   { kind: 'text', label: 'HTML', group: 'Text', exts: ['html', 'htm'], ready: true },
   { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Code', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
   { kind: 'ipynb', label: 'Jupyter ノートブック', group: 'Code', exts: ['ipynb'], ready: true },
-  { kind: 'text', label: 'ソースコード', group: 'Code', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
+  { kind: 'text', label: 'ソースコード', group: 'Code', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'jsonl', 'ndjson', 'jsonlines', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
   { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
   { kind: 'image', label: 'HEIC / HEIF', group: 'Image', exts: ['heic', 'heif'], ready: true },
@@ -133,6 +133,6 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   return 'unknown';
 }
 
-export function formatInfo(kind: FormatKind): FormatInfo | undefined {
-  return FORMATS.find((f) => f.kind === kind);
+export function formatInfo(kind: FormatKind, ext?: string): FormatInfo | undefined {
+  return (ext ? FORMATS.find((f) => f.kind === kind && f.exts.includes(ext)) : undefined) ?? FORMATS.find((f) => f.kind === kind);
 }

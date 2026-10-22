@@ -253,3 +253,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .empty-title { margin: 0 0 var(--sp-2); font-weight: var(--w-semibold); }
 .empty-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px var(--sp-3); margin: 0 0 var(--sp-2); font-size: var(--fs-sm); color: var(--ink-2); }
 .empty-meta dd { margin: 0; overflow-wrap: anywhere; }
+/* JSON Lines：件の区切りと、解釈できない行の注記 */
+.code[data-view="jsonl"] .row.jl-rec { border-top: 1px solid var(--line-2); margin-top: 6px; padding-top: 6px; }
+.code[data-view="jsonl"] .row.jl-err { background: var(--warn-wash); color: var(--warn); font-family: var(--font-sans, inherit); font-size: var(--fs-xs, 12px); white-space: pre-wrap; }
+.code[data-view="jsonl"] .row.jl-err .ln { color: var(--warn); font-weight: 600; }
+.code[data-view="jsonl"] .row.jl-raw { background: var(--warn-wash); }

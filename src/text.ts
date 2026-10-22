@@ -4,7 +4,7 @@ import { t } from './i18n';
 /** 拡張子 → highlight.js の言語名（'' はハイライトなし） */
 export const TEXT_LANG: Record<string, string> = {
   txt: '', log: '', text: '', out: '', ini: 'ini', cfg: 'ini', conf: 'ini', properties: 'ini', toml: 'ini', env: 'bash',
-  md: 'markdown', markdown: 'markdown', json: 'json', jsonc: 'json', geojson: 'json', xml: 'xml', xsd: 'xml', svgz: 'xml', plist: 'xml', csproj: 'xml', vcxproj: 'xml',
+  md: 'markdown', markdown: 'markdown', json: 'json', jsonc: 'json', geojson: 'json', jsonl: 'json', ndjson: 'json', jsonlines: 'json', xml: 'xml', xsd: 'xml', svgz: 'xml', plist: 'xml', csproj: 'xml', vcxproj: 'xml',
   yaml: 'yaml', yml: 'yaml', html: 'xml', htm: 'xml', xhtml: 'xml',
   py: 'python', pyw: 'python', js: 'javascript', mjs: 'javascript', cjs: 'javascript', jsx: 'javascript', ts: 'typescript', tsx: 'typescript', mts: 'typescript',
   c: 'c', h: 'c', cpp: 'cpp', cc: 'cpp', cxx: 'cpp', hpp: 'cpp', hh: 'cpp', ino: 'cpp', cs: 'csharp', java: 'java', kt: 'kotlin', kts: 'kotlin',
@@ -14,10 +14,11 @@ export const TEXT_LANG: Record<string, string> = {
   diff: 'diff', patch: 'diff', makefile: 'makefile', dockerfile: 'dockerfile', gitignore: 'bash', csv_txt: '',
 };
 
-export type TextMode = 'plain' | 'markdown' | 'json' | 'xml' | 'yaml' | 'html' | 'code';
+export type TextMode = 'plain' | 'markdown' | 'json' | 'jsonl' | 'xml' | 'yaml' | 'html' | 'code';
 
 export function textMode(ext: string): TextMode {
   if (ext === 'md' || ext === 'markdown') return 'markdown';
+  if (ext === 'jsonl' || ext === 'ndjson' || ext === 'jsonlines') return 'jsonl';
   if (ext === 'json' || ext === 'jsonc' || ext === 'geojson') return 'json';
   if (ext === 'html' || ext === 'htm' || ext === 'xhtml') return 'html';
   if (['xml', 'xsd', 'plist', 'csproj', 'vcxproj'].includes(ext)) return 'xml';

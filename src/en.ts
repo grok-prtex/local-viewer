@@ -1,5 +1,12 @@
 /** 英語辞書。キーは日本語の原文（i18n.ts 参照）。i18n.test.ts でキーの過不足を検査します */
 export const EN: Record<string, string> = {
+  "{0} 行目は JSON として解釈できないため、元のまま表示しています（{1}）": "Line {0} is not valid JSON, so it is shown as-is ({1})",
+  "先頭 {0} 件を整形して表示しています（読み込んだ先頭 30 MB の中に {1} 件）。残りは「ソースを表示」で見られます。": "Formatted the first {0} records ({1} records in the first 30 MB that was read). Use “View source” to see the rest.",
+  "先頭 {0} 件を整形して表示しています（全 {1} 件）。残りは「ソースを表示」で見られます。": "Formatted the first {0} records (of {1}). Use “View source” to see the rest.",
+  "JSON Lines として表示できる行がありません。": "There are no JSON Lines records to show.",
+  "コメントと末尾のカンマを除いて整形しています。元の書き方は「ソースを表示」で見られます。": "Formatted with comments and trailing commas removed. Use “View source” to see the original.",
+  "{0} 件・解釈できない行 {1}｜JSON Lines": "{0} records · {1} invalid lines | JSON Lines",
+  "{0} 件｜JSON Lines": "{0} records | JSON Lines",
   " · 大きいためハイライトなし": " · no highlighting (large file)",
   " ウィンドウ枠の固定（{0} 行・{1} 列）は表示のみで、スクロール固定はしません。": " Frozen panes ({0} rows, {1} columns) are noted but not pinned while scrolling.",
   " ／ コーデック: {0}": " / codec: {0}",
@@ -217,7 +224,7 @@ export const EN: Record<string, string> = {
   "（アドレスなし）": "(no address)",
   "（不明）": "(unknown)",
   "（件名なし）": "(no subject)",
-  "（先頭 30 MB）": "(first 30 MB)",
+  "（先頭 30 MB）": " (first 30 MB)",
   "（名前なし）": "(no name)",
   "（本文なし）": "(no body)",
   "［画像：{0}（外部の画像は読み込みません）］": "[Image: {0} (external images are not loaded)]",

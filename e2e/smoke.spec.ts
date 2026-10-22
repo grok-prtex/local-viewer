@@ -353,6 +353,24 @@ test.describe('テキスト・ソースコード', () => {
     await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.xml');
     await expect(page.getByTestId('code')).toContainText('<item id="1">値</item>');
   });
+  test('JSON Lines：1 行ずつ整形・元の行番号・壊れた行だけ元のまま／JSONC のコメント', async ({ page }) => {
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.jsonl');
+    const code = page.getByTestId('code');
+    await expect(code).toHaveAttribute('data-view', 'jsonl');
+    await expect(page.getByTestId('text-info')).toContainText('4 件・解釈できない行 1');
+    await expect(code.locator('.row.jl-err')).toHaveCount(1);
+    await expect(code.locator('.row.jl-err')).toContainText('4 行目');
+    expect((await code.locator('.row .ln').allInnerTexts()).map((x) => x.trim()).filter(Boolean)).toEqual(['1', '3', '!', '4', '5']);
+    await expect(code.locator('.row.jl-rec')).toHaveCount(3);
+    await page.getByTestId('mode-toggle').click();
+    await expect(code.locator('.row')).toHaveCount(6);
+    await page.goto('/');
+    await page.setInputFiles('input[type=file]', 'tests/fixtures/text/sample.jsonc');
+    await expect(code.locator('.row')).toHaveCount(7);
+    await expect(code).not.toContainText('コメント');
+    await expect(page.locator('.textview .hint')).toContainText('コメントと末尾のカンマを除いて');
+  });
   test('HTML はスクリプトを動かし、隔離枠の外には出られない', async ({ page, baseURL }) => {
     // CSP で止めた要求も request イベントは出るため、実際に通信が完了したもの・CSP 以外で失敗したものを数えます
     const ext: string[] = []; const isExt = (u: string) => !u.startsWith(baseURL!) && !/^(data|blob|about):/.test(u);
