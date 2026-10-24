@@ -98,8 +98,6 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .sheet table { border-collapse: collapse; font-size: var(--fs-sm); }
 .sheet td { border: 1px solid var(--line); padding: 4px 10px; white-space: nowrap; }
 .sheet tr:nth-child(even) td { background: var(--surface-2); }
-.docx { overflow: auto; max-height: 78vh; }
-.docx .docx-wrapper { background: var(--paper-2) !important; }
 
 .foot { border-top: 1px solid var(--line); padding: var(--sp-4) var(--sp-6); font-size: var(--fs-xs); color: var(--ink-3); display: flex; justify-content: space-between; gap: var(--sp-4); flex-wrap: wrap; }
 

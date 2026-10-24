@@ -5,7 +5,6 @@ dice.u3d (inside sample-3d-u3d.pdf), sample.u3d (= malte.u3d), epix.prc (inside 
 sample.x_t: (参考・非対応) header-only Parasolid stub kept for unsupported-path smoke; format removed 2026-10-16.
 multi.stl: two-solid ASCII STL written by hand for tests, CC0.
 text/*: written by hand for local-viewer tests, CC0.
-styled.xlsx: 見積書 sample generated with ExcelJS for tests, CC0.
 sample.sqlite: handwritten SQLite for tests, CC0.
 sample*.joblib: generated with joblib for tests, CC0.
 sample.mdb / sample.accdb: from andipaetzold/mdb-reader test fixtures (MIT).

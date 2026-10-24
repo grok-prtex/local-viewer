@@ -53,7 +53,7 @@ export default function DxfViewer({ file }: { file: File }) {
       // 図枠がペーパー空間（レイアウト）にある図面は、最初からレイアウトを表示します
       setMode(hasPaperSpace(d) ? 'paper' : 'model');
       setDxf(d);
-    }).catch(() => alive && setErr(t('DXF を読み込めませんでした。バイナリ DXF や DWG には、現在は対応していません。')));
+    }).catch(() => alive && setErr(t('DXF を読み込めませんでした。バイナリ DXF には対応していません。')));
     return () => { alive = false; };
   }, [file]);
 

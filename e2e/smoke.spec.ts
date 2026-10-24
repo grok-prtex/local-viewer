@@ -115,15 +115,16 @@ test('ZIP（中の STEP を開く）', async ({ page, baseURL }) => {
   w.assertClean('sample.zip'); expect(w.problems).toEqual([]);
 });
 
-test('CSV と Excel/Word 準備中', async ({ page, baseURL }) => {
+test('CSV と、非対応の Excel / Word は未対応扱い', async ({ page, baseURL }) => {
   const w = watch(page, baseURL!);
   await openFixture(page, 'sample.csv');
   await expect(page.getByTestId('sheet').getByText('ナットM6')).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/10-csv-sjis.png` });
-  await openFixture(page, 'sample.xlsx');
-  await expect(page.getByText('Excel（XLSX / XLS）の表示は準備中です')).toBeVisible();
-  await openFixture(page, 'sample.docx');
-  await expect(page.getByText('Word（DOCX）の表示は準備中です')).toBeVisible();
+  for (const n of ['sample.xlsx', 'sample.docx']) {
+    await openFixture(page, n);
+    await expect(page.getByText('この形式のファイルには、まだ対応していません。')).toBeVisible();
+    await expect(page.getByText('準備中')).toHaveCount(0);
+  }
   w.assertClean('sample.docx'); expect(w.problems).toEqual([]);
 });
 
@@ -451,11 +452,10 @@ test.describe('テキスト・ソースコード', () => {
   });
 });
 
-test('Excel / Word / PPTX は準備中バッジ', async ({ page }) => {
+test('Excel / Word / PowerPoint / DWG は対応形式一覧に出ない', async ({ page }) => {
   await page.goto('/');
-  for (const label of ['Excel', 'Word', 'PowerPoint']) {
-    const li = page.locator('li', { has: page.locator('.fmt', { hasText: label }) });
-    await expect(li.getByText('準備中')).toBeVisible();
+  for (const label of ['Excel', 'Word', 'PowerPoint', 'DWG']) {
+    await expect(page.locator('.fmt', { hasText: new RegExp(`^${label}$`) })).toHaveCount(0);
   }
 });
 

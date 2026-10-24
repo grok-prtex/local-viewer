@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { detectFormat, extOf } from './detect';
+import { detectFormat, extOf, FORMATS } from './detect';
 const fx = (n: string) => new Uint8Array(readFileSync(new URL('../tests/fixtures/' + n, import.meta.url)));
 const enc = (s: string) => new TextEncoder().encode(s);
 
@@ -25,23 +25,22 @@ describe('detectFormat', () => {
     expect(detectFormat('noext', fx('sample.igs'))).toBe('iges');
     expect(detectFormat('drawing', fx('sample.dxf'))).toBe('dxf');
   });
-  it('ZIP コンテナの Office 形式', () => {
+  it('Office（Word / Excel / PowerPoint）は非対応（ZIP として開かない）', () => {
     const zip = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0, 0]);
-    expect(detectFormat('a.xlsx', zip)).toBe('sheet');
-    expect(detectFormat('a.docx', zip)).toBe('docx');
-    expect(detectFormat('a.pptx', zip)).toBe('pptx');
+    for (const n of ['a.xlsx', 'a.xlsm', 'a.ods', 'a.docx', 'a.pptx']) expect(detectFormat(n, zip)).toBe('unknown');
     expect(detectFormat('a.bin', zip)).toBe('zip');
+    expect(FORMATS.some((f) => ['Excel', 'Word', 'PowerPoint', 'DWG'].includes(f.label))).toBe(false);
   });
-  it('OLE2 は MSG / XLS', () => {
+  it('OLE2 は MSG。XLS / DOC / PPT は非対応', () => {
     const ole = new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
     expect(detectFormat('a.msg', ole)).toBe('msg');
-    expect(detectFormat('a.xls', ole)).toBe('sheet');
+    for (const n of ['a.xls', 'a.doc', 'a.ppt']) expect(detectFormat(n, ole)).toBe('unknown');
   });
   it('バイナリ STL は拡張子で判定する', () => {
     expect(detectFormat('part.STL', new Uint8Array(84))).toBe('stl');
   });
   it('DWG と未対応', () => {
-    expect(detectFormat('a.dwg', enc('AC1032xxxx'))).toBe('dwg');
+    expect(detectFormat('a.dwg', enc('AC1032xxxx'))).toBe('unknown');
     expect(detectFormat('data.xyz', new Uint8Array([1, 2, 3]))).toBe('unknown');
   });
 });

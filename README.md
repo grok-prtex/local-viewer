@@ -15,15 +15,12 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 | 分類 | 形式 | 状態 | 使用ライブラリ |
 |---|---|---|---|
 | Office | PDF | 対応 | PDF.js（pdfjs-dist） |
-| Office | XLSX / XLS / CSV | 対応（値のみ。CSV は UTF-8 / Shift_JIS を自動判別） | SheetJS（xlsx） |
-| Office | DOCX | 対応 | docx-preview |
-| Office | PPTX | 準備中 | — |
+| 表 | CSV | 対応（値のみ。UTF-8 / Shift_JIS を自動判別） | SheetJS（xlsx） |
 | Mail | EML | 対応（ヘッダー・本文・添付の保存と表示） | postal-mime |
 | Mail | MSG | 対応 | @kenjiuno/msgreader |
 | CAD | DXF | 対応（線・円・円弧・ポリライン・楕円・ブロック、画層の表示切替。文字・寸法は未表示） | dxf-parser ＋ Three.js（自前描画） |
 | CAD | STEP / STP / IGES / IGS | 対応 | occt-import-js（OpenCascade の WebAssembly 版、Web Worker 内で実行）＋ Three.js |
 | CAD | STL | 対応 | Three.js STLLoader |
-| CAD | DWG | 準備中 | — |
 | CAD | 3D PDF（U3D） | 対応（PDF 内の U3D を自前デコーダーで表示、ページ表示と切替） | 自前（Intel U3D Sample Software, Apache-2.0 を参考に移植。NOTICE 参照） |
 | CAD | 3D PDF（PRC） | 検出のみ（「この3DPDF（PRC形式）はまだ未対応です」と表示、ページは表示） | — |
 | CAD | U3D | 対応（ベースメッシュのみ。プログレッシブ部分は未対応） | 同上 |
@@ -41,6 +38,8 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 | CAD | OBJ（+MTL）/ 3MF / glTF / GLB / PLY | 対応（同時に選んだ MTL・テクスチャ・.bin を使う。Draco 圧縮の glTF も可） | Three.js（OBJLoader / MTLLoader / 3MFLoader / GLTFLoader / DRACOLoader / PLYLoader） |
 | Font | TTF / OTF / WOFF / WOFF2 | 対応（情報、日本語・英語の見本、文字の入力、グリフ一覧、可変フォントの軸） | fontkit |
 
+Word・Excel・PowerPoint・DWG は表示品質が基準に届かないため非対応です（詳細は OFFICE.md）。開くと未対応ファイルとして案内します。
+
 3D ビューアは、回転・移動・拡大縮小・全体表示・ワイヤーフレーム切替・背景の白黒切替と、外形寸法（バウンディングボックス）の表示ができます。
 
 
@@ -56,7 +55,7 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 ```
 default-src 'none'; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' blob: data:; child-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
 ```
-`/occt-worker / xlsx-worker.js`（STEP / IGES を読む Web Worker）だけ:
+`/occt-worker.js`（STEP / IGES を読む Web Worker）だけ:
 ```
 default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-src 'self'
 ```
@@ -71,7 +70,7 @@ default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-
 | `img-src 'self' data: blob:` | 復号した画像や PDF の表示用です。メール本文の外部画像（開封確認の追跡画像など）は、ここで読み込みを止めます。 |
 | `worker-src 'self' blob:` | 解析用の Web Worker（PDF.js、OpenCascade、U3D、HEIC）用です。 |
 | `frame-src 'self' blob: data:` | メール本文を、スクリプトを無効にした sandbox の iframe（srcdoc）に表示するためです。 |
-| `style-src 'self' 'unsafe-inline'` | docx-preview と React のインライン style 用です。スタイルからは通信できません（`img-src` / `font-src` の制限を受けます）。 |
+| `style-src 'self' 'unsafe-inline'` | React などのインライン style 用です。スタイルからは通信できません（`img-src` / `font-src` の制限を受けます）。 |
 | `form-action 'none'` `base-uri 'none'` `object-src 'none'` `frame-ancestors 'none'` | フォーム送信・base の書き換え・プラグイン・他サイトへの埋め込みを禁止します。 |
 
 ### Cloudflare Web Analytics の扱い

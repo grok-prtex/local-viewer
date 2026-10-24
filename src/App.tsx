@@ -1,7 +1,7 @@
 import Prefs from './Prefs';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { detectFormat, extOf, FORMATS, formatInfo, type FormatKind } from './detect';
-import { Loading, ErrorBox, Notice } from './ui';
+import { Loading, ErrorBox } from './ui';
 import { size } from './viewers/Mail';
 import { loadSession, saveSession, clearSession, touchSession } from './session';
 import { t, useLang } from './i18n';
@@ -204,8 +204,6 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'stl': case 'step': case 'iges': case 'u3d': return <CadViewer file={file} kind={kind} />;
     case 'dxf': return <DxfViewer file={file} />;
     case 'csv': return <SheetViewer file={file} csv />;
-    case 'sheet': return <Notice>{t('Excel（XLSX / XLS）の表示は準備中です。CSV に書き出すか、PDF で受け取ると、ここで表示できます。')}</Notice>;
-    case 'docx': return <Notice>{t('Word（DOCX）の表示は準備中です。PDF に書き出すと、ここで表示できます。')}</Notice>;
     case 'image': return <ImageViewer file={file} />;
     case 'video': case 'audio': return <MediaViewer file={file} kind={kind} />;
     case 'text': return <TextViewer file={file} />;
@@ -220,8 +218,6 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'parquet': return <ParquetViewer file={file} />;
     case 'mbox': return <MboxViewer file={file} onOpen={openChild} />;
     case 'font': return <FontViewer file={file} />;
-    case 'pptx': return <Notice>{t('PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。')}</Notice>;
-    case 'dwg': return <Notice>{t('DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。')}</Notice>;
     default: return <ErrorBox>{t('この形式のファイルには、まだ対応していません。対応形式の一覧をご確認ください。')}</ErrorBox>;
   }
 }

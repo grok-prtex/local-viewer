@@ -2,7 +2,7 @@ import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'ipynb'
+  | 'csv' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'ipynb'
   | 'model3d' | 'archive' | 'tsv' | 'parquet' | 'mbox' | 'font' | 'unknown';
 
 export interface FormatInfo {
@@ -15,12 +15,9 @@ export interface FormatInfo {
 
 export const FORMATS: FormatInfo[] = [
   { kind: 'pdf', label: 'PDF（3D PDF 含む）', group: 'Office', exts: ['pdf'], ready: true },
-  { kind: 'sheet', label: 'Excel', group: 'Office', exts: ['xlsx', 'xls', 'xlsm'], ready: false },
   { kind: 'csv', label: 'CSV', group: 'Office', exts: ['csv'], ready: true },
   { kind: 'tsv', label: 'TSV', group: 'Office', exts: ['tsv', 'tab'], ready: true },
   { kind: 'parquet', label: 'Parquet', group: 'Office', exts: ['parquet'], ready: true },
-  { kind: 'docx', label: 'Word', group: 'Office', exts: ['docx'], ready: false },
-  { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
   { kind: 'access', label: 'Access', group: 'Office', exts: ['mdb', 'accdb'], ready: true },
   { kind: 'joblib', label: 'joblib / pickle', group: 'Code', exts: ['joblib', 'pkl', 'pickle'], ready: true },
@@ -43,7 +40,6 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'text', label: 'PLC・NC（ST / SCL / G コード）', group: 'Code', exts: ['st', 'scl', 'nc', 'gcode', 'tap'], ready: true },
   { kind: 'ipynb', label: 'Jupyter ノートブック', group: 'Code', exts: ['ipynb'], ready: true },
   { kind: 'text', label: 'ソースコード', group: 'Code', exts: Object.keys(TEXT_LANG).filter((x) => !['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env', 'md', 'json', 'xml', 'yaml', 'yml', 'html', 'htm', 'st', 'scl', 'nc', 'gcode', 'tap', 'csv_txt', 'text', 'out', 'markdown', 'jsonc', 'geojson', 'jsonl', 'ndjson', 'jsonlines', 'xsd', 'svgz', 'plist', 'csproj', 'vcxproj', 'xhtml', 'properties', 'ngc', 'cnc'].includes(x)), ready: true },
-  { kind: 'dwg', label: 'DWG', group: 'CAD', exts: ['dwg'], ready: false },
   { kind: 'image', label: '一般的な画像', group: 'Image', exts: ['png', 'jpg', 'gif', 'webp', 'avif', 'bmp', 'svg', 'ico'], ready: true },
   { kind: 'image', label: 'HEIC / HEIF', group: 'Image', exts: ['heic', 'heif'], ready: true },
   { kind: 'image', label: 'TIFF', group: 'Image', exts: ['tif', 'tiff'], ready: true },
@@ -64,6 +60,8 @@ export function extOf(name: string): string {
   const i = name.lastIndexOf('.');
   return i < 0 ? '' : name.slice(i + 1).toLowerCase();
 }
+
+const OFFICE_DWG = new Set(['docx', 'docm', 'doc', 'dotx', 'xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'ods', 'odt', 'odp', 'pptx', 'pptm', 'ppt', 'ppsx', 'dwg']);
 
 function startsWith(b: Uint8Array, sig: number[]): boolean {
   return sig.every((v, i) => b[i] === v);
@@ -101,11 +99,10 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
   if (/^\s*ISO-10303-21/.test(text)) return 'step';
   if (startsWith(head, [0x55, 0x33, 0x44, 0x00])) return 'u3d';
+  // Office（Word / Excel / PowerPoint）と DWG は表示品質が基準に届かないため非対応（2026-10-24 削除）。ZIP・OLE・テキスト判定より前に止める
+  if (OFFICE_DWG.has(ext)) return 'unknown';
   if (startsWith(head, [0x50, 0x4b, 0x03, 0x04]) || startsWith(head, [0x50, 0x4b, 0x05, 0x06])) {
-    // ZIP コンテナ（Office Open XML も ZIP）
-    if (ext === 'xlsx' || ext === 'xlsm') return 'sheet';
-    if (ext === 'docx') return 'docx';
-    if (ext === 'pptx') return 'pptx';
+    // ZIP コンテナ
     if (ext === '3mf') return 'model3d';
     return 'zip';
   }
@@ -114,12 +111,10 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   // Parasolid（x_t / x_b）はブラウザだけでは形状表示できないため非対応（2026-10-16 削除）
   if (ext === 'x_t' || ext === 'x_b' || ext === 'xmt_txt' || ext === 'xmt_bin') return 'unknown';
   if (startsWith(head, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) {
-    // OLE2 複合ファイル（MSG / XLS / MDB など）
-    if (ext === 'xls') return 'sheet';
+    // OLE2 複合ファイル（MSG / MDB など）
     if (ext === 'mdb' || ext === 'accdb') return 'access';
     return 'msg';
   }
-  if (/^AC10\d\d/.test(text)) return 'dwg';
   // テキスト系（.ts は MPEG-TS 動画と重なるため、先頭が同期バイト 0x47 でなければテキスト）
   if (ext in TEXT_LANG && looksText(head) && !(ext === 'ts' && head[0] === 0x47)) return 'text';
   if (ext !== 'pdf' && ext !== 'dxf' && ext !== 'eml' && ext !== 'step' && ext !== 'stp') {
@@ -136,14 +131,10 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     case 'dxf': return 'dxf';
     case 'u3d': return 'u3d';
     case 'zip': return 'zip';
-    case 'xlsx': case 'xls': case 'xlsm': return 'sheet';
     case 'csv': return 'csv';
-    case 'docx': return 'docx';
-    case 'pptx': return 'pptx';
     case 'sqlite': case 'sqlite3': case 'db': case 'db3': return 'sqlite';
     case 'mdb': case 'accdb': return 'access';
     case 'joblib': case 'pkl': case 'pickle': return 'joblib';
-    case 'dwg': return 'dwg';
     case 'obj': case 'gltf': case 'glb': case 'ply': case '3mf': return 'model3d';
     case '7z': case 'tar': case 'gz': case 'tgz': return 'archive';
     case 'tsv': case 'tab': return 'tsv';
@@ -157,7 +148,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   if (/^\s*0\s*\r?\n\s*SECTION/.test(text)) return 'dxf';
   if (/^(From|Received|Return-Path|Message-ID|MIME-Version|Subject|Date|To|Delivered-To):/im.test(text) && ext !== 'txt') return 'eml';
   if (text.length >= 80 && text[72] === 'S' && /^.{72}S\s*\d+/.test(text)) return 'iges';
-  if (ext !== 'dwg' && looksText(head) && head.length > 0) return 'text';
+  if (looksText(head) && head.length > 0) return 'text';
   return 'unknown';
 }
 
