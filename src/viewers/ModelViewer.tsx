@@ -5,8 +5,17 @@ import ModelTree, { type TreeNode } from './ModelTree';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, nextFrame, type ProgressState } from '../progress';
 import { extOf } from '../detect';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 import { baseName, makeResolver } from '../model/resolve';
+import { loadSlices, layerIndex, type LayerIndex, type SliceModel, type SliceIssue } from '../model/slice3mf';
+import { buildSliceScene, type SliceScene } from '../model/sliceScene';
+import SlicePanel, { type SliceMode } from './SlicePanel';
+
+type SliceState = { model: SliceModel; li: LayerIndex; scene: SliceScene; mesh: THREE.Object3D; hasMesh: boolean };
+const issueText = (c: SliceIssue['code']) => ({
+  'missing-stack': t('存在しないスライススタックへの参照'), 'missing-part': t('見つからないパーツ'), 'nested-ref': t('参照先がさらに別の層を参照している'),
+  cycle: t('循環する参照'), 'too-deep': t('深すぎる参照'), 'missing-object': t('存在しないオブジェクトへの参照'), 'non-planar': t('層が傾く変換'), order: t('高さが昇順でない層'),
+})[c];
 
 /** 部品ツリー（名前のある子を最大 2,000 件まで） */
 function treeOf(root: THREE.Object3D, name: string): TreeNode | null {
@@ -33,6 +42,8 @@ export default function ModelViewer({ file, siblings }: { file: File; siblings: 
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [err, setErr] = useState('');
   const [notes, setNotes] = useState<string[]>([]);
+  const [slice, setSlice] = useState<SliceState | null>(null);
+  const [mode, setModeS] = useState<SliceMode>('layers');
   const [prog, setProg] = useState<ProgressState>({ stage: '読み込み中', pct: 0, stages: MST });
   const job = useRef<{ cancelled: boolean }>({ cancelled: false });
 
@@ -46,7 +57,7 @@ export default function ModelViewer({ file, siblings }: { file: File; siblings: 
       const manager = new THREE.LoadingManager(); manager.setURLModifier(res.modify);
       const head = new Uint8Array(buf, 0, Math.min(4, buf.byteLength));
       const kind: Kind = String.fromCharCode(...head) === 'glTF' ? 'glb' : ext;
-      let root: THREE.Object3D; const n: string[] = [];
+      let root: THREE.Object3D; const n: string[] = []; let sliceOut: SliceState | null = null;
       if (kind === 'gltf' || kind === 'glb') {
         const [{ GLTFLoader }, { DRACOLoader }, { MeshoptDecoder }] = await Promise.all([
           import('three/examples/jsm/loaders/GLTFLoader.js'), import('three/examples/jsm/loaders/DRACOLoader.js'), import('three/examples/jsm/libs/meshopt_decoder.module.js')]);
@@ -109,9 +120,29 @@ export default function ModelViewer({ file, siblings }: { file: File; siblings: 
         root.name = file.name;
       } else {
         const { ThreeMFLoader } = await import('three/examples/jsm/loaders/3MFLoader.js');
-        root = new ThreeMFLoader(manager).parse(buf);
-        let meshes = 0; root.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes++; });
-        if (!meshes) throw new Error('empty');
+        // スライス拡張（層データ）は three.js の読み込み器が扱わないため、別に読み取ります
+        let sm: SliceModel | null = null;
+        try {
+          const JSZip = (await import('jszip')).default;
+          const zip = await JSZip.loadAsync(buf);
+          const names = new Map(Object.keys(zip.files).map((k) => ['/' + k.replace(/^\/+/, '').toLowerCase(), k]));
+          sm = await loadSlices(async (p) => { const k = names.get(p.toLowerCase()); return k && !zip.files[k].dir ? zip.file(k)!.async('string') : null; });
+        } catch (e) { console.warn('slice parse failed', e); }
+        if (j.cancelled) throw new Error('cancelled');
+        const hasSlices = !!sm?.instances.length;
+        try { root = new ThreeMFLoader(manager).parse(buf); } catch (e) { if (!hasSlices) throw sm?.issues.length ? Object.assign(new Error('slice'), { sm }) : e; root = new THREE.Group(); }
+        let meshes = 0; root.traverse((o) => { const m = o as THREE.Mesh; if (m.isMesh && (m.geometry.getAttribute('position')?.count ?? 0) > 0) meshes++; });
+        if (!meshes && !hasSlices) throw sm?.issues.length ? Object.assign(new Error('slice'), { sm }) : new Error('empty');
+        if (sm && hasSlices) {
+          const li = layerIndex(sm);
+          const scene = buildSliceScene(sm, li);
+          sliceOut = { model: sm, li, scene, mesh: root, hasMesh: meshes > 0 };
+          if (!meshes) n.push(t('メッシュを持たず、スライス（層）だけで形が表されているファイルです。'));
+          else if (sm.instances.some((x) => x.lowres)) n.push(t('メッシュは低解像度（lowres）の参考形状です。正確な形はスライス（層）で表されています。'));
+          if (sm.fallback) n.push(t('造形指示（build）からたどれる層がないため、ファイル内のスライススタックをそのまま表示しています。'));
+          if (sm.issues.length) n.push(t('スライスデータの一部が仕様に沿っていません（{0}）。読める範囲で表示しています。', [...new Set(sm.issues.map((x) => issueText(x.code)))].join(getLang() === 'en' ? ', ' : '、')));
+          if (scene.stride > 1) n.push(t('層が多いため、全体図の輪郭は {0} 層おきに間引いています（選んだ層はすべて描きます）。', scene.stride));
+        }
       }
       await res.settle();
       if (res.missingTex.size) n.push(t('見つからないファイルがあるため、一部の画像（テクスチャ）を省いて表示しています：{0}', [...res.missingTex].join(', ')));
@@ -119,13 +150,15 @@ export default function ModelViewer({ file, siblings }: { file: File; siblings: 
       root.userData.tris = tris;
       set({ stage: '描画中' }); await nextFrame();
       const group = new THREE.Group(); group.name = file.name; group.add(root);
-      if (alive) { setNotes(n); setTree(treeOf(root, file.name)); setObj(group); }
+      if (sliceOut) { group.add(sliceOut.scene.group); root.visible = false; }
+      if (alive) { setNotes(n); setTree(treeOf(root, file.name)); setSlice(sliceOut); setModeS('layers'); setObj(group); }
     })().catch((e) => {
       if (!alive) return;
       res.dispose();
       const m = String(e?.message);
       if (m === 'cancelled') setErr(t('読み込みをキャンセルしました。'));
       else if (m === 'missing') setErr(t('参照しているファイルが見つかりません：{0}。.gltf と一緒に .bin や画像ファイルもまとめて選んでください。', (e.missing as string[]).join(', ')));
+      else if (m === 'slice') setErr(t('スライス（層）データの参照が仕様に沿っていないため、表示できる層がありません（{0}）。', [...new Set((e.sm as SliceModel).issues.map((x) => issueText(x.code)))].join(getLang() === 'en' ? ', ' : '、')));
       else if (m === 'ext') setErr(t('この glTF は、まだ対応していない拡張機能を使っています：{0}', e.detail));
       else { console.warn('model load failed', e); setErr(t('3D モデルを読み込めませんでした。ファイルが壊れているか、対応していない書式の可能性があります。')); }
     });
@@ -135,11 +168,14 @@ export default function ModelViewer({ file, siblings }: { file: File; siblings: 
   if (err) return <ErrorBox>{err}</ErrorBox>;
   if (!obj) return <Progress p={prog} onCancel={() => { job.current.cancelled = true; setErr(t('読み込みをキャンセルしました。')); }} />;
   const tris = Math.round(obj.children[0]?.userData.tris ?? 0);
+  const setMode = (m: SliceMode) => { setModeS(m); if (slice) { slice.mesh.visible = m !== 'layers'; slice.scene.group.visible = m !== 'mesh'; } };
+  const layers = slice ? slice.li.zs.length : 0;
   return (
     <div data-testid="model-view">
       {notes.map((x) => <p key={x} className="hint note" data-testid="model-note">{x}</p>)}
       <ThreeView object={obj} up={ext === '3mf' ? 'z' : 'y'} env={ext === 'gltf' || ext === 'glb'} side={tree ? <ModelTree root={tree} /> : undefined} />
-      {tris > 0 && <p className="hint mono" data-testid="model-stats">{t('三角形 {0}', tris.toLocaleString())}{siblings.length ? ' · ' + t('一緒に読み込んだファイル {0}', siblings.map((f) => baseName(f.name)).join(', ')) : ''}</p>}
+      {slice && <SlicePanel model={slice.model} li={slice.li} scene={slice.scene} mode={mode} setMode={setMode} hasMesh={slice.hasMesh} />}
+      {(tris > 0 || layers > 0) && <p className="hint mono" data-testid="model-stats">{[tris > 0 ? t('三角形 {0}', tris.toLocaleString()) : '', layers ? t('スライス {0} 層', layers.toLocaleString()) : ''].filter(Boolean).join(' · ')}{siblings.length ? ' · ' + t('一緒に読み込んだファイル {0}', siblings.map((f) => baseName(f.name)).join(', ')) : ''}</p>}
     </div>
   );
 }

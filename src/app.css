@@ -314,3 +314,18 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .glyphs li { display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 2px 4px; background: var(--surface); min-width: 0; }
 .glyphs .g { font-size: 28px; line-height: 1.2; color: var(--ink); }
 .glyphs .u { font-family: var(--font-mono) !important; font-size: 9px; color: var(--ink-3); }
+/* 3MF スライス（層） */
+.slice-panel { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--sp-4); margin-top: var(--sp-3); padding: var(--sp-3) var(--sp-4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.slice-head { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+.slice-panel .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.slice-panel .seg button:disabled { opacity: .45; cursor: not-allowed; }
+.slice-row { display: flex; align-items: center; gap: var(--sp-2); }
+.slice-row input[type=range] { flex: 1; min-width: 0; accent-color: #f08a24; height: 32px; }
+.slice-row button { min-width: 40px; padding: 4px 0; font-size: var(--fs-body); }
+.slice-info { display: grid; grid-template-columns: max-content 1fr; gap: 4px var(--sp-3); margin: var(--sp-3) 0 var(--sp-2); }
+.slice-info dt { font-size: var(--fs-micro); letter-spacing: var(--tracking-label); color: var(--ink-3); text-transform: uppercase; align-self: center; }
+.slice-info dd { margin: 0; color: var(--ink); }
+.slice-top { min-width: 0; }
+.slice-top .label { display: block; }
+.slice-top canvas { display: block; border: 1px solid var(--line); border-radius: var(--r-sm, 6px); max-width: 100%; }
+@media (max-width: 860px) { .slice-panel { grid-template-columns: minmax(0, 1fr); } }

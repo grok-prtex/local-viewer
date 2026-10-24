@@ -72,10 +72,29 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
     makeControls();
     let pivotOrigin = false;
 
-    const box = new THREE.Box3().setFromObject(object);
-    const sz = box.getSize(new THREE.Vector3());
+    // 表示中のものだけで範囲を求めます（隠したメッシュに合わせて層が小さく映らないように）
+    const visibleBox = () => {
+      let hidden = false; object.traverse((o) => { if (!o.visible) hidden = true; });
+      if (!hidden) return new THREE.Box3().setFromObject(object);
+      object.updateWorldMatrix(true, true);
+      const b = new THREE.Box3(); const tmp = new THREE.Box3();
+      const walk = (o: THREE.Object3D) => {
+        if (!o.visible) return;
+        const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+        if (g && g.attributes?.position) {
+          if (!g.boundingBox) g.computeBoundingBox();
+          tmp.copy(g.boundingBox!).applyMatrix4(o.matrixWorld); b.union(tmp);
+        }
+        o.children.forEach(walk);
+      };
+      walk(object);
+      return b.isEmpty() ? new THREE.Box3().setFromObject(object) : b;
+    };
+    let box = visibleBox();
+    let sz = box.getSize(new THREE.Vector3());
     setSize(sz);
     const fit = () => {
+      box = visibleBox(); sz = box.getSize(new THREE.Vector3());
       const c = pivotOrigin ? new THREE.Vector3() : box.getCenter(new THREE.Vector3());
       const m = box.getCenter(new THREE.Vector3());
       const r = Math.max(sz.length() / 2, 1e-6);
@@ -107,7 +126,7 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
     };
     buildHelpers();
     // 部品ごとの色分けとクリックで強調
-    const meshes: THREE.Mesh[] = []; object.traverse((o) => { if ((o as THREE.Mesh).isMesh) meshes.push(o as THREE.Mesh); });
+    const meshes: THREE.Mesh[] = []; object.traverse((o) => { if ((o as THREE.Mesh).isMesh && !o.userData.noPick) meshes.push(o as THREE.Mesh); });
     const orig = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>(meshes.map((m) => [m, m.material]));
     const distinct = meshes.map((_, i) => material(new THREE.Color().setHSL((i * 0.618034) % 1, 0.55, 0.55)));
     const base = new Map(orig);

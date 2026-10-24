@@ -18,3 +18,6 @@ newfmt/pyramid_vertexcolor.3mf: 3MFConsortium/3mf-samples (BSD-2-Clause).
 newfmt/dolphins.ply: mrdoob/three.js examples (MIT).
 newfmt/inter-latin-700.woff2: Inter via @fontsource/inter (SIL OFL 1.1).
 newfmt/symbol.tsv: first lines of google/mozc symbol.tsv (BSD-3-Clause).
+slice/box_sliced.3mf: 3MFConsortium/3mf-samples examples/slices @665e20dc (BSD-2-Clause).
+slice/Expected_Slice_Hierarchy.3mf, slice/MultiSliceStack_TwoFiles.3mf, slice/PS_505_02_non_planar_transform.3mf, slice/Slice_MustFail_TooRefsTooDeep.3mf: 3MFConsortium/lib3mf Tests/TestFiles/Slice @bfb5df00 (BSD-2-Clause).
+slice/2ProductionBoxes_OneSliceFile.3mf: 3MFConsortium/lib3mf Tests/TestFiles/Production @bfb5df00 (BSD-2-Clause).

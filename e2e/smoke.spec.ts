@@ -289,6 +289,35 @@ test('ASCII STL の複数 solid をツリーに表示', async ({ page }) => {
   await expect(page.getByTestId('model-tree')).toContainText('partB');
 });
 
+test('3MF スライス：層スライダーで 1 層ずつ・上面図・メッシュ切替', async ({ page }) => {
+  const errors: string[] = []; page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/slice/box_sliced.3mf');
+  await expect(page.getByTestId('slice-panel')).toBeVisible({ timeout: 60000 });
+  await expect(page.getByTestId('model-stats')).toContainText('スライス');
+  const n = +(await page.getByTestId('slice-slider').getAttribute('max'))!;
+  expect(n).toBeGreaterThan(300);
+  await expect(page.getByTestId('slice-layer')).toHaveText(`${n.toLocaleString()} / ${n.toLocaleString()}`);
+  await page.getByTestId('slice-slider').fill(String(Math.round(n / 2)));
+  const z1 = await page.getByTestId('slice-z').innerText();
+  await page.getByTestId('slice-next').click();
+  await expect(page.getByTestId('slice-layer')).toHaveText(`${(Math.round(n / 2) + 1).toLocaleString()} / ${n.toLocaleString()}`);
+  expect(await page.getByTestId('slice-z').innerText()).not.toBe(z1);
+  expect(+(await page.getByTestId('slice-top').getAttribute('data-polys'))!).toBeGreaterThan(0);
+  await page.getByTestId('slice-mode-mesh').click();
+  await expect(page.getByTestId('slice-mode-mesh')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTestId('slice-mode-layers').click();
+  expect(errors).toEqual([]);
+});
+
+test('3MF スライスのみ（メッシュなし）でも層を表示', async ({ page }) => {
+  await page.goto('/');
+  await page.setInputFiles('input[type=file]', 'tests/fixtures/slice/2ProductionBoxes_OneSliceFile.3mf');
+  await expect(page.getByTestId('slice-panel')).toBeVisible({ timeout: 60000 });
+  await expect(page.getByTestId('model-note').first()).toContainText('メッシュを持たず');
+  await expect(page.getByTestId('slice-mode-mesh')).toBeDisabled();
+});
+
 test('Ctrl+ホイールはビューア内だけで拡大（画像・PDF）', async ({ page }) => {
   await page.goto('/');
   await page.setInputFiles('input[type=file]', 'tests/fixtures/sample.pdf');
