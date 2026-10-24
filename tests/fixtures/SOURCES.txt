@@ -10,3 +10,11 @@ sample.sqlite: handwritten SQLite for tests, CC0.
 sample*.joblib: generated with joblib for tests, CC0.
 sample.mdb / sample.accdb: from andipaetzold/mdb-reader test fixtures (MIT).
 sample.SLDPRT: 512-byte OLE header stub (no content), CC0. Used to confirm SolidWorks is unsupported (2026-10-16).
+newfmt/japanese.7z, encrypted.7z, japanese.tar, japanese.tar.gz, memo.txt.gz, mixed.mbox, cube.obj, cube.mtl: generated for tests, CC0 (2026-10-24).
+newfmt/broken.7z, broken.glb: random bytes, CC0.
+newfmt/alltypes_plain.parquet: apache/parquet-testing (Apache-2.0).
+newfmt/Box_embedded.gltf: KhronosGroup glTF-Sample-Assets Box (CC-BY 4.0, Cesium).
+newfmt/pyramid_vertexcolor.3mf: 3MFConsortium/3mf-samples (BSD-2-Clause).
+newfmt/dolphins.ply: mrdoob/three.js examples (MIT).
+newfmt/inter-latin-700.woff2: Inter via @fontsource/inter (SIL OFL 1.1).
+newfmt/symbol.tsv: first lines of google/mozc symbol.tsv (BSD-3-Clause).

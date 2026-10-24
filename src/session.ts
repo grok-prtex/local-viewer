@@ -6,7 +6,11 @@
  */
 const DB = 'local-viewer-session', STORE = 'sessions', SID_KEY = 'lv-session-id';
 const STALE_MS = 45_000;
-export interface SavedFile { name: string; type: string; blob?: Blob; bytes?: ArrayBuffer; }
+export interface SavedFile { name: string; type: string; blob?: Blob; bytes?: ArrayBuffer; siblings?: SavedFile[]; }
+/** 開いているファイルと、一緒に選ばれたファイル（OBJ の .mtl など） */
+export interface SessionItem { file: File; siblings?: File[]; }
+const toSaved = (f: File): SavedFile => ({ name: f.name, type: f.type, blob: f });
+const toFile = (f: SavedFile) => new File([(f.blob ?? f.bytes)!], f.name, { type: f.type });
 
 export function sessionId(): string {
   let id = sessionStorage.getItem(SID_KEY);
@@ -30,21 +34,21 @@ async function tx<T>(mode: IDBTransactionMode, fn: (s: IDBObjectStore) => IDBReq
   });
 }
 
-export async function saveSession(files: File[]) {
+export async function saveSession(items: SessionItem[]) {
   const sid = sessionId();
-  if (!files.length) { await tx('readwrite', (s) => { s.delete(sid); }); return; }
+  if (!items.length) { await tx('readwrite', (s) => { s.delete(sid); }); return; }
   // File（Blob）のまま保存します。大きな動画でもメモリに全体を読み込みません
-  const saved: SavedFile[] = files.map((f) => ({ name: f.name, type: f.type, blob: f }));
+  const saved: SavedFile[] = items.map((o) => ({ ...toSaved(o.file), siblings: o.siblings?.length ? o.siblings.map(toSaved) : undefined }));
   await tx('readwrite', (s) => { s.put({ sid, ts: Date.now(), files: saved }); });
 }
 
-export async function loadSession(): Promise<File[]> {
+export async function loadSession(): Promise<SessionItem[]> {
   const sid = sessionId();
   const all = (await tx('readonly', (s) => s.getAll())) as { sid: string; ts: number; files: SavedFile[] }[] | undefined;
   const now = Date.now();
   await tx('readwrite', (s) => { for (const e of all ?? []) if (e.sid !== sid && now - e.ts > STALE_MS) s.delete(e.sid); });
   const mine = all?.find((e) => e.sid === sid);
-  return mine ? mine.files.map((f) => new File([(f.blob ?? f.bytes)!], f.name, { type: f.type })) : [];
+  return mine ? mine.files.map((f) => ({ file: toFile(f), siblings: f.siblings?.map(toFile) })) : [];
 }
 
 /** 開いている間は生存確認の時刻を更新します */

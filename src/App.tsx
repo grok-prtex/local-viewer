@@ -20,9 +20,20 @@ const SqlViewer = lazy(() => import('./viewers/SqlViewer'));
 const JoblibViewer = lazy(() => import('./viewers/JoblibViewer'));
 const AccessViewer = lazy(() => import('./viewers/AccessViewer'));
 const NotebookViewer = lazy(() => import('./viewers/NotebookViewer'));
+const ModelViewer = lazy(() => import('./viewers/ModelViewer'));
+const ArchiveViewer = lazy(() => import('./viewers/ArchiveViewer'));
+const ParquetViewer = lazy(() => import('./viewers/ParquetViewer'));
+const MboxViewer = lazy(() => import('./viewers/MboxViewer'));
+const FontViewer = lazy(() => import('./viewers/FontViewer'));
 
-interface Opened { file: File; kind: FormatKind; }
-const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Text', 'Code'] as const;
+/** siblings: 一緒に選ばれたファイル（OBJ の .mtl・テクスチャ、glTF の .bin・画像など） */
+interface Opened { file: File; kind: FormatKind; siblings?: File[]; }
+const GROUPS = ['Office', 'Mail', 'CAD', 'Image', 'Media', 'Archive', 'Font', 'Text', 'Code'] as const;
+/** 複数ファイルを一度に選んだとき、主に表示するファイル（3D モデル本体を優先） */
+function mainFile(files: File[]): File {
+  const rank = (f: File) => { const e = extOf(f.name); return e === 'gltf' || e === 'glb' ? 0 : e === 'obj' ? 1 : e === '3mf' || e === 'ply' || e === 'stl' ? 2 : 9; };
+  return [...files].sort((a, b) => rank(a) - rank(b))[0];
+}
 const isReady = (k: FormatKind) => FORMATS.some((f) => f.kind === k && f.ready);
 
 export default function App() {
@@ -36,11 +47,11 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
-        const files = await loadSession();
+        const items = await loadSession();
         const opened: Opened[] = [];
-        for (const file of files) {
+        for (const { file, siblings } of items) {
           const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
-          opened.push({ file, kind: detectFormat(file.name, head) });
+          opened.push({ file, kind: detectFormat(file.name, head), siblings });
         }
         if (opened.length) setStack(opened);
       } catch { /* IndexedDB が使えない環境では復元しません */ }
@@ -49,30 +60,34 @@ export default function App() {
     const t = setInterval(() => { touchSession().catch(() => {}); }, 15_000);
     return () => clearInterval(t);
   }, []);
-  useEffect(() => { if (restored) saveSession(stack.map((o) => o.file)).catch(() => {}); }, [stack, restored]);
+  useEffect(() => { if (restored) saveSession(stack.map((o) => ({ file: o.file, siblings: o.siblings }))).catch(() => {}); }, [stack, restored]);
   const wipe = () => { setStack([]); clearSession().catch(() => {}); };
 
-  const open = useCallback(async (file: File, replace: boolean) => {
+  const open = useCallback(async (file: File, replace: boolean, siblings?: File[]) => {
     const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
-    const o = { file, kind: detectFormat(file.name, head) };
+    const o: Opened = { file, kind: detectFormat(file.name, head), siblings: siblings?.filter((f) => f !== file) };
     setStack((s) => (replace ? [o] : [...s, o]));
     window.scrollTo(0, 0);
   }, []);
-  const openChild = useCallback((f: File) => open(f, false), [open]);
+  const openChild = useCallback((f: File, siblings?: File[]) => open(f, false, siblings), [open]);
+  const openList = useCallback((list: FileList | null | undefined) => {
+    const fs = list ? Array.from(list) : []; if (!fs.length) return;
+    const main = mainFile(fs); open(main, true, fs.length > 1 ? fs : undefined);
+  }, [open]);
   const canOpen = useCallback((n: string, d: Uint8Array) => isReady(detectFormat(n, d.subarray(0, 1024))), []);
   const canOpenName = useCallback((n: string) => isReady(detectFormat(n, new Uint8Array())), []);
 
   useEffect(() => {
     const over = (e: DragEvent) => { e.preventDefault(); setDrag(true); };
     const leave = (e: DragEvent) => { if (!e.relatedTarget) setDrag(false); };
-    const drop = (e: DragEvent) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer?.files?.[0]; if (f) open(f, true); };
+    const drop = (e: DragEvent) => { e.preventDefault(); setDrag(false); openList(e.dataTransfer?.files); };
     window.addEventListener('dragover', over); window.addEventListener('dragleave', leave); window.addEventListener('drop', drop);
     return () => { window.removeEventListener('dragover', over); window.removeEventListener('dragleave', leave); window.removeEventListener('drop', drop); };
-  }, [open]);
+  }, [openList]);
 
   const picker = (
-    <input ref={input} type="file" hidden data-testid="file-input"
-      onChange={(e) => { const f = e.target.files?.[0]; if (f) open(f, true); e.target.value = ''; }} />
+    <input ref={input} type="file" hidden multiple data-testid="file-input"
+      onChange={(e) => { openList(e.target.files); e.target.value = ''; }} />
   );
 
   return (
@@ -103,7 +118,7 @@ export default function App() {
               <div className="groups">
                 {GROUPS.map((g) => (
                   <div className="group" key={g}>
-                    <div className="label mono" data-group={g}>{g === 'Code' ? t('プログラム') : g.toUpperCase()}</div>
+                    <div className="label mono" data-group={g}>{g === 'Code' ? t('プログラム') : g === 'Font' ? t('フォント') : g.toUpperCase()}</div>
                     <ul>
                       {FORMATS.filter((f) => f.group === g).map((f) => (
                         <li key={f.label} className={f.ready ? '' : 'pending'}>
@@ -127,7 +142,7 @@ export default function App() {
           <section className="viewer">
             <div className="viewer-head">
               <div className="crumbs">
-                {stack.length > 1 && <button className="ghost" onClick={() => setStack((s) => s.slice(0, -1))}>{t('戻る')}</button>}
+                {stack.length > 1 && <button className="ghost" data-testid="back" onClick={() => setStack((s) => s.slice(0, -1))}>{t('戻る')}</button>}
                 <div>
                   <div className="fname" data-testid="file-name">{current.file.name}</div>
                   <div className="mono meta">{(['image', 'video', 'audio'].includes(current.kind) ? null : (formatInfo(current.kind, extOf(current.file.name)) ? t(formatInfo(current.kind, extOf(current.file.name))!.label) : null)) ?? (extOf(current.file.name).toUpperCase() || t('不明な形式'))} · {size(current.file.size)}</div>
@@ -177,7 +192,7 @@ function EmptyFile({ file }: { file: File }) {
   );
 }
 
-function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: (f: File) => void; canOpen: (n: string, d: Uint8Array) => boolean; canOpenName: (n: string) => boolean }) {
+function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: (f: File, siblings?: File[]) => void; canOpen: (n: string, d: Uint8Array) => boolean; canOpenName: (n: string) => boolean }) {
   const { file, kind } = o;
   // 0 バイトはどの形式でも解析せず、空ファイルとして案内します
   if (file.size === 0) return <EmptyFile file={file} />;
@@ -198,6 +213,12 @@ function Viewer({ o, openChild, canOpen, canOpenName }: { o: Opened; openChild: 
     case 'joblib': return <JoblibViewer file={file} />;
     case 'access': return <AccessViewer file={file} />;
     case 'zip': return <ZipViewer file={file} onOpen={openChild} canOpenName={canOpenName} />;
+    case 'archive': return <ArchiveViewer file={file} onOpen={openChild} canOpenName={canOpenName} canOpen={canOpen} />;
+    case 'model3d': return <ModelViewer file={file} siblings={o.siblings ?? []} />;
+    case 'tsv': return <SheetViewer file={file} csv tsv />;
+    case 'parquet': return <ParquetViewer file={file} />;
+    case 'mbox': return <MboxViewer file={file} onOpen={openChild} />;
+    case 'font': return <FontViewer file={file} />;
     case 'pptx': return <ErrorBox>{t('PowerPoint（PPTX）の表示は準備中です。もうしばらくお待ちください。')}</ErrorBox>;
     case 'dwg': return <ErrorBox>{t('DWG の表示は準備中です。CAD ソフトで DXF に書き出すと、ここで表示できます。')}</ErrorBox>;
     default: return <ErrorBox>{t('この形式のファイルには、まだ対応していません。対応形式の一覧をご確認ください。')}</ErrorBox>;

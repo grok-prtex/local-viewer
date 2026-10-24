@@ -229,7 +229,8 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .dbgrid table.sized .c { max-width: none; }
 .dbgrid table.sized th, .dbgrid table.sized td { overflow: hidden; }
 .sheetx thead.letters th { text-align: center; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-3); font-weight: 500; padding: 2px 4px; overflow: hidden; }
-@media (pointer: coarse) { .col-rs { width: 18px; right: -9px; } .col-rs::after { left: 7px; background: var(--line); } }
+/* 見出しは 1 つずつ重なり順が決まるため、つまみが隣の見出しにはみ出すと指で掴めません。タッチではセルの内側に収めます */
+@media (pointer: coarse) { .col-rs { width: 18px; right: 0; } .col-rs::after { left: 14px; background: var(--line); } }
 /* Jupyter ノートブック */
 .nb-cells { display: flex; flex-direction: column; gap: var(--sp-3); }
 .nb-cell { display: grid; grid-template-columns: 76px minmax(0, 1fr); column-gap: var(--sp-2); row-gap: 4px; }
@@ -258,3 +259,58 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .code[data-view="jsonl"] .row.jl-err { background: var(--warn-wash); color: var(--warn); font-family: var(--font-sans, inherit); font-size: var(--fs-xs, 12px); white-space: pre-wrap; }
 .code[data-view="jsonl"] .row.jl-err .ln { color: var(--warn); font-weight: 600; }
 .code[data-view="jsonl"] .row.jl-raw { background: var(--warn-wash); }
+
+/* ── 追加形式（3D・アーカイブ・Parquet・MBOX・フォント） ── */
+.banner { margin: 0 0 var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-md); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.banner.warn { color: var(--ink); background: var(--warn-wash); border: 1px solid var(--warn-line); }
+.hint.note { margin: 0 0 var(--sp-2); padding: var(--sp-2) var(--sp-3); border-left: 3px solid var(--info-line); background: var(--info-wash); color: var(--ink-2); overflow-wrap: anywhere; }
+.zip .att-size { color: var(--ink-3); font-size: var(--fs-xs); }
+
+.pq-pager { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; margin: var(--sp-2) 0; }
+.pq-pager .mono { font-size: var(--fs-xs); color: var(--ink-2); padding: 0 var(--sp-2); }
+.sheetx.pq table { font-family: var(--font-sans); font-size: var(--fs-sm); }
+.sheetx.pq th { vertical-align: bottom; white-space: nowrap; overflow: hidden; }
+.pq-name { display: block; overflow: hidden; text-overflow: ellipsis; }
+.pq-type { display: block; font-size: var(--fs-micro); font-weight: 500; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; }
+.sheetx.pq td { padding: 2px 6px; text-overflow: ellipsis; }
+.sheetx.pq .pq-idx { color: var(--ink-3); text-align: right; font-size: var(--fs-xs); background: var(--paper-2); }
+.sheetx.pq td.pq-null { color: var(--ink-4); font-style: italic; font-size: var(--fs-xs); }
+
+.mbox { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3) var(--sp-4); background: var(--surface-2); }
+.mbox-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-2); }
+.mbox-bar .label { margin: 0; }
+.mbox-q { font: inherit; font-size: var(--fs-sm); padding: 6px 10px; border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--surface); color: var(--ink); min-width: 0; width: min(320px, 100%); box-sizing: border-box; }
+.mbox-list { list-style: none; margin: 0; padding: 0; }
+.mbox-row { display: grid; grid-template-columns: 9.5em minmax(0, 14em) minmax(0, 1fr); align-items: center; gap: var(--sp-3); padding: 6px 0; border-top: 1px solid var(--line); }
+.mbox-row:first-child { border-top: 0; }
+.mbox-date { font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; }
+.mbox-from { min-width: 0; }
+.mbox-from .person-chip { max-width: 100%; }
+.mbox-from .person-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mbox-subj { text-align: left; background: none; border: 0; padding: 4px 0; min-height: 0; color: var(--ink); font-size: var(--fs-body); overflow-wrap: anywhere; cursor: pointer; }
+.mbox-subj:hover { background: none; color: var(--signal-ink); text-decoration: underline; }
+@media (max-width: 640px) {
+  .mbox-row { grid-template-columns: auto minmax(0, 1fr); gap: 2px var(--sp-2); }
+  .mbox-subj { grid-column: 1 / -1; }
+}
+
+.fontv { min-width: 0; }
+.font-info { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: var(--sp-2) var(--sp-4); margin: 0 0 var(--sp-3); }
+.font-info div { min-width: 0; }
+.font-info dt { font-size: var(--fs-micro); letter-spacing: var(--tracking-label); color: var(--ink-3); text-transform: uppercase; }
+.font-info dd { margin: 0; overflow-wrap: anywhere; }
+.font-copy { overflow-wrap: anywhere; }
+.font-axes { margin: var(--sp-3) 0; }
+.font-axis { display: grid; grid-template-columns: 7em minmax(0, 1fr) 4em; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); }
+.font-axis input { width: 100%; min-width: 0; }
+.font-edit { display: block; margin: var(--sp-3) 0; }
+.font-edit input { display: block; width: 100%; box-sizing: border-box; font: inherit; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: var(--r-md); background: var(--surface); color: var(--ink); }
+.font-samples { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); margin-bottom: var(--sp-4); }
+.font-sample { display: grid; grid-template-columns: 3.5em minmax(0, 1fr); gap: var(--sp-3); padding: var(--sp-2) var(--sp-3); border-top: 1px solid var(--line); align-items: baseline; }
+.font-sample:first-child { border-top: 0; }
+.font-sample p { margin: 0; line-height: 1.3; overflow-wrap: anywhere; color: var(--ink); }
+.font-size-label { font-family: var(--font-mono) !important; font-size: var(--fs-micro); color: var(--ink-3); }
+.glyphs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); border-left: 1px solid var(--line); border-top: 1px solid var(--line); }
+.glyphs li { display: flex; flex-direction: column; align-items: center; justify-content: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 6px 2px 4px; background: var(--surface); min-width: 0; }
+.glyphs .g { font-size: 28px; line-height: 1.2; color: var(--ink); }
+.glyphs .u { font-family: var(--font-mono) !important; font-size: 9px; color: var(--ink-3); }

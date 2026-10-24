@@ -2,12 +2,13 @@ import { TEXT_LANG, looksText } from './text';
 import { ftypBrand, imageSub, mediaKind } from './media';
 export type FormatKind =
   | 'pdf' | 'eml' | 'msg' | 'stl' | 'step' | 'iges' | 'u3d' | 'dxf' | 'zip'
-  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'ipynb' | 'unknown';
+  | 'sheet' | 'csv' | 'docx' | 'pptx' | 'dwg' | 'image' | 'video' | 'audio' | 'text' | 'sqlite' | 'access' | 'joblib' | 'ipynb'
+  | 'model3d' | 'archive' | 'tsv' | 'parquet' | 'mbox' | 'font' | 'unknown';
 
 export interface FormatInfo {
   kind: FormatKind;
   label: string;
-  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive' | 'Text' | 'Code';
+  group: 'Office' | 'Mail' | 'CAD' | 'Image' | 'Media' | 'Archive' | 'Font' | 'Text' | 'Code';
   exts: string[];
   ready: boolean;
 }
@@ -16,6 +17,8 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'pdf', label: 'PDF（3D PDF 含む）', group: 'Office', exts: ['pdf'], ready: true },
   { kind: 'sheet', label: 'Excel', group: 'Office', exts: ['xlsx', 'xls', 'xlsm'], ready: false },
   { kind: 'csv', label: 'CSV', group: 'Office', exts: ['csv'], ready: true },
+  { kind: 'tsv', label: 'TSV', group: 'Office', exts: ['tsv', 'tab'], ready: true },
+  { kind: 'parquet', label: 'Parquet', group: 'Office', exts: ['parquet'], ready: true },
   { kind: 'docx', label: 'Word', group: 'Office', exts: ['docx'], ready: false },
   { kind: 'pptx', label: 'PowerPoint', group: 'Office', exts: ['pptx'], ready: false },
   { kind: 'sqlite', label: 'SQLite', group: 'Office', exts: ['sqlite', 'sqlite3', 'db', 'db3'], ready: true },
@@ -23,11 +26,16 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'joblib', label: 'joblib / pickle', group: 'Code', exts: ['joblib', 'pkl', 'pickle'], ready: true },
   { kind: 'eml', label: 'EML', group: 'Mail', exts: ['eml'], ready: true },
   { kind: 'msg', label: 'Outlook MSG', group: 'Mail', exts: ['msg'], ready: true },
+  { kind: 'mbox', label: 'MBOX', group: 'Mail', exts: ['mbox', 'mbx'], ready: true },
   { kind: 'dxf', label: 'DXF', group: 'CAD', exts: ['dxf'], ready: true },
   { kind: 'step', label: 'STEP', group: 'CAD', exts: ['step', 'stp'], ready: true },
   { kind: 'iges', label: 'IGES', group: 'CAD', exts: ['iges', 'igs'], ready: true },
   { kind: 'stl', label: 'STL', group: 'CAD', exts: ['stl'], ready: true },
   { kind: 'u3d', label: 'U3D', group: 'CAD', exts: ['u3d'], ready: true },
+  { kind: 'model3d', label: 'OBJ', group: 'CAD', exts: ['obj'], ready: true },
+  { kind: 'model3d', label: '3MF', group: 'CAD', exts: ['3mf'], ready: true },
+  { kind: 'model3d', label: 'glTF / GLB', group: 'CAD', exts: ['gltf', 'glb'], ready: true },
+  { kind: 'model3d', label: 'PLY', group: 'CAD', exts: ['ply'], ready: true },
   { kind: 'text', label: 'テキスト・ログ・設定', group: 'Text', exts: ['txt', 'log', 'ini', 'cfg', 'conf', 'toml', 'env'], ready: true },
   { kind: 'text', label: 'Markdown', group: 'Text', exts: ['md'], ready: true },
   { kind: 'text', label: 'JSON / JSON Lines / XML / YAML', group: 'Text', exts: ['json', 'jsonl', 'ndjson', 'xml', 'yaml', 'yml'], ready: true },
@@ -46,6 +54,10 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'audio', label: '音声', group: 'Media', exts: ['mp3', 'wav', 'm4a', 'ogg', 'flac'], ready: true },
   { kind: 'video', label: 'AVI / WMV / FLV', group: 'Media', exts: ['avi', 'wmv', 'flv'], ready: false },
   { kind: 'zip', label: 'ZIP', group: 'Archive', exts: ['zip'], ready: true },
+  { kind: 'archive', label: '7z', group: 'Archive', exts: ['7z'], ready: true },
+  { kind: 'archive', label: 'tar / gzip', group: 'Archive', exts: ['tar', 'gz', 'tgz'], ready: true },
+  { kind: 'font', label: 'TrueType / OpenType', group: 'Font', exts: ['ttf', 'otf'], ready: true },
+  { kind: 'font', label: 'WOFF / WOFF2', group: 'Font', exts: ['woff', 'woff2'], ready: true },
 ];
 
 export function extOf(name: string): string {
@@ -79,6 +91,13 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
   if (ext === 'ipynb' && looksText(head)) return 'ipynb';
   if (ext === 'mdb' || ext === 'accdb' || ascii(head).startsWith('Standard Jet DB') || ascii(head).startsWith('Standard ACE DB')) return 'access';
   if (ascii(head).startsWith('SQLite format 3')) return 'sqlite';
+  if (startsWith(head, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c])) return 'archive'; // 7z
+  if (startsWith(head, [0x1f, 0x8b]) && ext !== 'svgz') return 'archive'; // gzip（.tar.gz / .tgz / .gz）
+  if (head.length >= 262 && ascii(head.subarray(257, 262)) === 'ustar') return 'archive'; // tar
+  if (text.startsWith('PAR1')) return 'parquet';
+  if (text.startsWith('glTF') && (head[4] === 2 || head[4] === 1)) return 'model3d'; // GLB
+  if (/^ply\r?\n/.test(text)) return 'model3d';
+  if (text.startsWith('wOFF') || text.startsWith('wOF2') || text.startsWith('OTTO') || ((ext === 'ttf' || ext === 'otf') && (startsWith(head, [0, 1, 0, 0]) || text.startsWith('true')))) return 'font';
   if (startsWith(head, [0x25, 0x50, 0x44, 0x46])) return 'pdf'; // %PDF
   if (/^\s*ISO-10303-21/.test(text)) return 'step';
   if (startsWith(head, [0x55, 0x33, 0x44, 0x00])) return 'u3d';
@@ -87,6 +106,7 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     if (ext === 'xlsx' || ext === 'xlsm') return 'sheet';
     if (ext === 'docx') return 'docx';
     if (ext === 'pptx') return 'pptx';
+    if (ext === '3mf') return 'model3d';
     return 'zip';
   }
   // SolidWorks（sldprt / sldasm / slddrw）は非対応（2026-10-16 削除）。OLE 判定より前に止める
@@ -124,7 +144,15 @@ export function detectFormat(name: string, head: Uint8Array): FormatKind {
     case 'mdb': case 'accdb': return 'access';
     case 'joblib': case 'pkl': case 'pickle': return 'joblib';
     case 'dwg': return 'dwg';
+    case 'obj': case 'gltf': case 'glb': case 'ply': case '3mf': return 'model3d';
+    case '7z': case 'tar': case 'gz': case 'tgz': return 'archive';
+    case 'tsv': case 'tab': return 'tsv';
+    case 'parquet': return 'parquet';
+    case 'mbox': case 'mbx': return 'mbox';
+    case 'ttf': case 'otf': case 'woff': case 'woff2': return 'font';
   }
+  // 拡張子のない mbox（先頭が「From 差出人 日付」の区切り行）
+  if (/^From \S+ +\S.*\d{4}\s*\r?\n/.test(text) && ext !== 'txt') return 'mbox';
   if (/^solid\s/i.test(text) && /facet/i.test(text)) return 'stl';
   if (/^\s*0\s*\r?\n\s*SECTION/.test(text)) return 'dxf';
   if (/^(From|Received|Return-Path|Message-ID|MIME-Version|Subject|Date|To|Delivered-To):/im.test(text) && ext !== 'txt') return 'eml';

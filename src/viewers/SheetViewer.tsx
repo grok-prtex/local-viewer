@@ -2,13 +2,14 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
-import { decodeCsv } from './csv';
+import { decodeCsv, splitTsv } from './csv';
 import { t } from '../i18n';
 import { colName, useColResize } from './colResize';
 
 interface Cell { c: number; v: string; bg: string | null; fg: string | null; b: boolean; i: boolean; u: boolean; sz: number | null; ha: string | null; va: string | null; wrap: boolean; bt: string | null; bb: string | null; bl: string | null; br: string | null; }
 interface Row { h: number; hidden: boolean; cells: Cell[]; }
-interface Sheet { name: string; cols: { w: number; hidden: boolean }[]; rows: Row[]; merges: { r: number; c: number; rowspan: number; colspan: number }[]; freeze: { x: number; y: number } | null; }
+/** lines：TSV の速い読み方（行の文字列だけを持ち、表示する行だけをタブで分けます） */
+interface Sheet { name: string; cols: { w: number; hidden: boolean }[]; rows: Row[]; lines?: string[]; merges: { r: number; c: number; rowspan: number; colspan: number }[]; freeze: { x: number; y: number } | null; }
 
 const ROW_H = 22;
 const VIS = 400; // 一度に描く行数（仮想化の簡易版：必要に応じて増やす）
@@ -21,6 +22,17 @@ function runXlsx(buf: ArrayBuffer, job: { cancel?: () => void }): Promise<Sheet[
     w.onerror = (e) => { w.terminate(); reject(new Error(e.message)); };
     w.postMessage({ buffer: buf }, [buf]);
   });
+}
+
+const plainCell = (x: number, v: string): Cell => ({ c: x, v, bg: null, fg: null, b: false, i: false, u: false, sz: null, ha: null, va: null, wrap: false, bt: null, bb: null, bl: null, br: null });
+function tsvSheet(name: string, text: string): Sheet[] | null {
+  const s = splitTsv(text); if (!s) return null;
+  return [{ name, cols: Array.from({ length: s.ncols }, () => ({ w: 96, hidden: false })), rows: [], lines: s.lines, merges: [], freeze: null }];
+}
+const rowCount = (ws: Sheet) => ws.lines?.length ?? ws.rows.length;
+function rowsOf(ws: Sheet, n: number): Row[] {
+  if (!ws.lines) return ws.rows.slice(0, n);
+  return ws.lines.slice(0, n).map((l) => ({ h: ROW_H, hidden: false, cells: l.split('\t').map((v, x) => plainCell(x, v)) }));
 }
 
 /** CSV と古い XLS（.xls）は書式なしの値表示にします */
@@ -40,7 +52,7 @@ function plainSheets(wb: XLSX.WorkBook): Sheet[] {
   });
 }
 
-export default function SheetViewer({ file, csv, xls }: { file: File; csv?: boolean; xls?: boolean }) {
+export default function SheetViewer({ file, csv, xls, tsv }: { file: File; csv?: boolean; xls?: boolean; tsv?: boolean }) {
   const [sheets, setSheets] = useState<Sheet[] | null>(null);
   const [cur, setCur] = useState(0);
   const [err, setErr] = useState('');
@@ -53,13 +65,16 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
     (async () => {
       const buf = await readWithProgress(file, (pct) => alive && setProg({ stage: '読み込み中', pct, stages: ['読み込み中', '解析中'] }));
       if (alive) setProg({ stage: '解析中', stages: ['読み込み中', '解析中'] });
-      const s = csv ? plainSheets(XLSX.read(decodeCsv(buf), { type: 'string', raw: true }))
+      const text = csv || tsv ? decodeCsv(buf) : '';
+      if (tsv && /[\u0000-\u0008\u000e-\u001a]/.test(text.slice(0, 65536))) throw new Error('binary');
+      const s = tsv ? tsvSheet(file.name.replace(/\.[^.]+$/, '') || 'TSV', text) ?? plainSheets(XLSX.read(text, { type: 'string', raw: true, FS: '\t' }))
+        : csv ? plainSheets(XLSX.read(text, { type: 'string', raw: true }))
         : xls ? plainSheets(XLSX.read(buf, { type: 'array', cellDates: true }))
         : await runXlsx(buf, job.current);
       if (alive) { setSheets(s); setCur(0); setShown(VIS); }
-    })().catch((e) => { if (!alive) return; if (String(e?.message) === 'cancelled') setErr(t('読み込みをキャンセルしました。')); else setErr(t('表を読み込めませんでした。パスワード付きのファイルは開けません。')); });
+    })().catch((e) => { if (!alive) return; if (String(e?.message) === 'cancelled') setErr(t('読み込みをキャンセルしました。')); else if (String(e?.message) === 'binary') setErr(t('タブ区切りのテキストとして読み込めませんでした。ファイルが壊れているか、テキストではない可能性があります。')); else setErr(t('表を読み込めませんでした。パスワード付きのファイルは開けません。')); });
     return () => { alive = false; job.current.cancel?.(); };
-  }, [file, csv, xls]);
+  }, [file, csv, xls, tsv]);
 
   const wsv = sheets?.[cur];
   const vcols = useMemo(() => (wsv ? wsv.cols.filter((c) => !c.hidden) : []), [wsv]);
@@ -70,7 +85,7 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
   const cover = new Map<string, { rowspan: number; colspan: number }>();
   const skip = new Set<string>();
   for (const m of ws.merges) { cover.set(`${m.r},${m.c}`, { rowspan: m.rowspan, colspan: m.colspan }); for (let y = m.r; y < m.r + m.rowspan; y++) for (let x = m.c; x < m.c + m.colspan; x++) if (y !== m.r || x !== m.c) skip.add(`${y},${x}`); }
-  const rows = ws.rows.slice(0, shown);
+  const rows = rowsOf(ws, shown);
   const vis = new Map<number, number>(); ws.cols.forEach((c, i) => { if (!c.hidden) vis.set(i, vis.size); });
   return (
     <div>
@@ -97,8 +112,8 @@ export default function SheetViewer({ file, csv, xls }: { file: File; csv?: bool
           </tbody>
         </table>
       </div>
-      {ws.rows.length > shown && <p className="hint">{t('全 {0} 行のうち {1} 行を表示しています。', ws.rows.length.toLocaleString(), shown.toLocaleString())}<button onClick={() => setShown((n) => n + VIS * 2)} data-testid="more-rows">{t('さらに表示')}</button></p>}
-      <p className="hint">{xls ? t('XLS（古い形式）は値のみの表示です。') : csv ? t('CSV は値のみの表示です。') : t('グラフ・画像・マクロは表示しません。方眼紙のような帳票では列幅や結合の見え方が Excel と違うことがあります。')}{ws.freeze ? t(' ウィンドウ枠の固定（{0} 行・{1} 列）は表示のみで、スクロール固定はしません。', ws.freeze.y, ws.freeze.x) : ''}</p>
+      {rowCount(ws) > shown && <p className="hint">{t('全 {0} 行のうち {1} 行を表示しています。', rowCount(ws).toLocaleString(), shown.toLocaleString())}<button onClick={() => setShown((n) => n + VIS * 2)} data-testid="more-rows">{t('さらに表示')}</button></p>}
+      <p className="hint">{xls ? t('XLS（古い形式）は値のみの表示です。') : tsv ? t('TSV は値のみの表示です。') : csv ? t('CSV は値のみの表示です。') : t('グラフ・画像・マクロは表示しません。方眼紙のような帳票では列幅や結合の見え方が Excel と違うことがあります。')}{ws.freeze ? t(' ウィンドウ枠の固定（{0} 行・{1} 列）は表示のみで、スクロール固定はしません。', ws.freeze.y, ws.freeze.x) : ''}</p>
     </div>
   );
 }

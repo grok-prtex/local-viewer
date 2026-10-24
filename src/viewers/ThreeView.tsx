@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
 import * as THREE from 'three';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { FreeControls } from './freeControls';
 import { t } from '../i18n';
 
-interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; }
+/** env: 金属・ラフネスの質感（glTF の PBR）を出すため、室内の環境光を映り込ませます */
+interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; env?: boolean; }
 
 type Api = { fit: () => void; setWire: (w: boolean) => void; setBg: (m: 'light' | 'dark' | 'jade') => void; setGrid: (g: boolean) => void; setPivot: (origin: boolean) => void; setGhost: (g: boolean) => void; setUp: (u: 'z' | 'y') => void; setColors: (c: boolean) => void };
 
@@ -28,7 +30,7 @@ function makeGizmo() {
 }
 
 /** STL / STEP / IGES 共通の 3D ビューア */
-export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
+export default function ThreeView({ object, side, up: up0 = 'z', env = false }: Props) {
   const host = useRef<HTMLDivElement>(null);
   const api = useRef<Api | null>(null);
   const [grid, setGrid] = useState(false);
@@ -53,6 +55,11 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
     scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8f96, 1.6));
     const dir = new THREE.DirectionalLight(0xffffff, 1.6);
     camera.add(dir); dir.position.set(1, 1, 2); scene.add(camera);
+    let envTex: THREE.Texture | null = null;
+    if (env) {
+      const pm = new THREE.PMREMGenerator(renderer); envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture; pm.dispose();
+      scene.environment = envTex; scene.environmentIntensity = 0.7;
+    }
     scene.add(object);
     // 真上・真下で止まらない自由回転（上方向の切替・全体表示で向きを作り直します）
     let controls!: FreeControls;
@@ -179,7 +186,7 @@ export default function ThreeView({ object, side, up: up0 = 'z' }: Props) {
       renderer.domElement.removeEventListener('pointerdown', onDown); renderer.domElement.removeEventListener('pointerup', onUp); renderer.domElement.removeEventListener('dblclick', onDbl);
       distinct.forEach((m) => m.dispose()); ghostCache.forEach((m) => m.dispose());
       object.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
-      renderer.dispose(); el.removeChild(renderer.domElement);
+      envTex?.dispose(); renderer.dispose(); el.removeChild(renderer.domElement);
     };
   }, [object]);
 
