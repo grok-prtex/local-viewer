@@ -3,7 +3,7 @@ import type React from 'react';
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { FreeControls } from './freeControls';
-import { t } from '../i18n';
+import { t, resolvedTheme } from '../i18n';
 
 /** env: 金属・ラフネスの質感（glTF の PBR）を出すため、室内の環境光を映り込ませます */
 interface Props { object: THREE.Object3D; side?: React.ReactNode; up?: 'z' | 'y'; env?: boolean; }
@@ -40,7 +40,9 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
   const [picked, setPicked] = useState('');
   const [pivotNote, setPivotNote] = useState('モデル中心');
   const [wire, setWire] = useState(false);
-  const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>('light');
+  // 背景は開いた時点のテーマに合わせます（DXF と同じ）
+  const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>(() => (resolvedTheme() === 'dark' ? 'dark' : 'light'));
+  const bg0 = useRef(bg);
   const [size, setSize] = useState<THREE.Vector3 | null>(null);
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
     });
     const BGS = { light: 0xf4f5f3, dark: 0x1e2124, jade: 0xe8f0ec } as const;
     const setBg = (m: 'light' | 'dark' | 'jade') => { scene.background = new THREE.Color(BGS[m]); };
-    setBg('light');
+    setBg(bg0.current);
     // 原点の座標軸とグリッド（切り替え式）
     const L = Math.max(sz.x, sz.y, sz.z) || 1;
     const helpers = new THREE.Group(); helpers.visible = false; scene.add(helpers);
@@ -234,5 +236,9 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
 const fmt = (v: number) => (Math.abs(v) >= 100 ? v.toFixed(1) : v.toFixed(2));
 
 export function material(color?: THREE.ColorRepresentation) {
-  return new THREE.MeshStandardMaterial({ color: color ?? 0x9aa3ab, metalness: 0.15, roughness: 0.55, side: THREE.DoubleSide });
+  // ほぼ黒の指定色は陰影が見えず塗りつぶしの影絵になるため、明るさの下限を設けます
+  const c = new THREE.Color(color ?? 0x9aa3ab);
+  const hsl = { h: 0, s: 0, l: 0 }; c.getHSL(hsl);
+  if (hsl.l < 0.22) c.setHSL(hsl.h, hsl.s, 0.22);
+  return new THREE.MeshStandardMaterial({ color: c, metalness: 0.15, roughness: 0.55, side: THREE.DoubleSide });
 }

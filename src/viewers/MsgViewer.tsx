@@ -3,7 +3,7 @@ import MsgReader from '@kenjiuno/msgreader';
 import MailView, { MailData, MailAttachment } from './Mail';
 import { Loading, ErrorBox } from '../ui';
 import type { MailAddr } from '../mailHeaders';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 
 export default function MsgViewer({ file, onOpen, canOpen }: { file: File; onOpen: (f: File) => void; canOpen: (n: string, d: Uint8Array) => boolean }) {
   const [mail, setMail] = useState<MailData | null>(null);
@@ -42,7 +42,7 @@ export default function MsgViewer({ file, onOpen, canOpen }: { file: File; onOpe
           return name || address ? [{ name, address }] : [];
         })(),
         to: rec('to'), cc: rec('cc'),
-        date: d.messageDeliveryTime || d.clientSubmitTime ? new Date((d.messageDeliveryTime || d.clientSubmitTime)!).toLocaleString('ja-JP') : '',
+        date: d.messageDeliveryTime || d.clientSubmitTime ? new Date((d.messageDeliveryTime || d.clientSubmitTime)!).toLocaleString(getLang() === 'ja' ? 'ja-JP' : 'en-US') : '',
         html, text: d.body, attachments: atts,
       });
     }).catch(() => alive && setErr(t('Outlook のメール（MSG）を読み込めませんでした。')));

@@ -176,7 +176,7 @@ export default function DxfViewer({ file }: { file: File }) {
       <div className="dxf-layout">
         <div className="three-host" ref={host} data-testid="dxf-host" />
         <aside className="layers">
-          <div className="label mono">LAYERS · {layerNames.length}</div>
+          <div className="label mono">{t('レイヤー')} · {layerNames.length}</div>
           {layerNames.map((l) => (
             <label key={l}><input type="checkbox" checked={!hidden.has(l)} onChange={() => { const n = new Set(hidden); if (n.has(l)) n.delete(l); else n.add(l); setHidden(n); }} /> {l}</label>
           ))}

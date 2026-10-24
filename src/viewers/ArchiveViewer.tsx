@@ -127,7 +127,7 @@ export default function ArchiveViewer({ file, onOpen, canOpenName, canOpen }: { 
       {data.truncated && <p className="hint">{t('項目が多いため、最初の {0} 件だけを表示しています。', MAX_ENTRIES.toLocaleString())}</p>}
       {note && <p className="banner warn" role="alert" data-testid="arc-note">{note}</p>}
       {busy && <Progress p={{ stage: '解析中', detail: t('{0} を取り出しています', busy), stages: ST }} />}
-      <div className="label mono">ENTRIES · {files.length}</div>
+      <div className="label mono">{t('収録ファイル')} · {files.length}</div>
       <ul data-testid="zip-list" className={flat ? '' : 'ztree'}>
         {sortDirs(tree).map((c) => <DirView key={c.path} d={c} depth={0} row={row} />)}
         {tree.files.map(row)}

@@ -72,7 +72,7 @@ export default function FontViewer({ file }: { file: File }) {
       {f.copyright && <p className="hint font-copy">{f.copyright}</p>}
       {axList.length > 0 && (
         <div className="font-axes" data-testid="font-axes">
-          <div className="label mono">VARIATION</div>
+          <div className="label mono">{t('可変軸')}</div>
           {axList.map(([k, a]) => (
             <label key={k} className="font-axis">
               <span className="mono">{a.name || k}</span>
@@ -84,7 +84,7 @@ export default function FontViewer({ file }: { file: File }) {
       )}
       {!d.jp && <p className="hint" data-testid="font-nojp">{t('このフォントには日本語の文字が入っていません。日本語の見本は表示しません。')}</p>}
       <label className="font-edit">
-        <span className="label mono">SAMPLE</span>
+        <span className="label mono">{t('サンプル')}</span>
         <input type="text" value={text} placeholder={t('ここに文字を入力すると、見本がその文字に変わります')} onChange={(e) => setText(e.target.value)} data-testid="font-input" />
       </label>
       <div className="font-samples" style={style} data-testid="font-samples">
@@ -97,7 +97,7 @@ export default function FontViewer({ file }: { file: File }) {
           </div>
         ))}
       </div>
-      <div className="label mono">GLYPHS · {d.chars.length.toLocaleString()}</div>
+      <div className="label mono">{t('文字一覧')} · {d.chars.length.toLocaleString()}</div>
       <ul className="glyphs" style={style} data-testid="glyph-grid">
         {d.chars.slice(0, shown).map((c) => {
           const hex = 'U+' + c.toString(16).toUpperCase().padStart(4, '0');

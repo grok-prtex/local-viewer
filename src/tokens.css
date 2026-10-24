@@ -20,7 +20,7 @@
   /* Ink (cool charcoal scale) */
   --ink:          #15171A;   /* primary text, structural */
   --ink-2:        #565C63;   /* secondary text */
-  --ink-3:        #878D95;   /* tertiary / muted / placeholders */
+  --ink-3:        #666C73;   /* tertiary / muted / placeholders (AA 4.5:1 on paper) */
   --ink-4:        #B4B9BF;   /* disabled, faint */
 
   /* Lines (hairline borders — the system leans on these over shadow) */
@@ -152,7 +152,7 @@
   --surface-2:    #F8F8F5;
   --ink:          #15171A;
   --ink-2:        #565C63;
-  --ink-3:        #878D95;
+  --ink-3:        #666C73;
   --ink-4:        #B4B9BF;
   --line:         #E5E6E1;
   --line-2:       #D6D8D2;
@@ -203,7 +203,7 @@
   /* Ink — warm off-white scale */
   --ink:          #ECEDEA;
   --ink-2:        #A7ADB4;
-  --ink-3:        #767C84;
+  --ink-3:        #959BA3;
   --ink-4:        #4C5158;
 
   /* Lines — a touch brighter so card edges read on the deep bg */
@@ -261,7 +261,7 @@
     --surface-2:    #282E35;
     --ink:          #ECEDEA;
     --ink-2:        #A7ADB4;
-    --ink-3:        #767C84;
+    --ink-3:        #959BA3;
     --ink-4:        #4C5158;
     --line:         #313841;
     --line-2:       #3D444C;

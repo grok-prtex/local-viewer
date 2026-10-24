@@ -82,7 +82,7 @@ export default function SqlViewer({ file }: { file: File }) {
       {err && <ErrorBox>{err}</ErrorBox>}
       <div className="sql-layout">
         <aside className="sql-side">
-          <div className="label mono">TABLES · {meta.tables.length}</div>
+          <div className="label mono">{t('テーブル')} · {meta.tables.length}</div>
           <ul data-testid="sql-tables">
             {meta.tables.map((t) => (
               <li key={t.name}><button className={cur === t.name ? 'on' : ''} onClick={() => { setCur(t.name); setOff(0); setSql(''); setErr(''); }} title={t.name}><span className="tname">{t.name}</span><span className="mono">{t.type}{meta.counts[t.name] != null ? ` · ${meta.counts[t.name]}` : ''}</span></button></li>
@@ -98,8 +98,8 @@ export default function SqlViewer({ file }: { file: File }) {
             </details>
           )}
           <div className="sql-query">
-            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder={'SELECT …'} data-testid="sql-input"
-              onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runSql(); }} />
+            <input value={sql} onChange={(e) => setSql(e.target.value)} placeholder={'SELECT …'} aria-label={t('SQL 文（SELECT …）')} data-testid="sql-input"
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) runSql(); }} />
             <button onClick={runSql} data-testid="sql-run">{t('実行')}</button>
           </div>
           {rows && (

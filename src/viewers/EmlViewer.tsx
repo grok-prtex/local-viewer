@@ -3,7 +3,7 @@ import PostalMime from 'postal-mime';
 import MailView, { MailData, MailAttachment } from './Mail';
 import { Loading, ErrorBox } from '../ui';
 import { readMailHeaders, looksGarbled, type MailAddr } from '../mailHeaders';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 
 type Addr = { name?: string; address?: string; group?: Addr[] };
 const toList = (a?: Addr | Addr[]): MailAddr[] => (a ? (Array.isArray(a) ? a : [a]) : [])
@@ -35,7 +35,7 @@ export default function EmlViewer({ file, onOpen, canOpen }: { file: File; onOpe
       setMail({
         subject: h.subject || (looksGarbled(e.subject ?? '') ? '' : e.subject ?? ''),
         from: pickList(h.from, toList(e.from as Addr)), to: pickList(h.to, toList(e.to as Addr[])), cc: pickList(h.cc, toList(e.cc as Addr[])),
-        date: e.date ? new Date(e.date).toLocaleString('ja-JP') : '', html: e.html, text: e.text, attachments: atts,
+        date: e.date ? new Date(e.date).toLocaleString(getLang() === 'ja' ? 'ja-JP' : 'en-US') : '', html: e.html, text: e.text, attachments: atts,
       });
     }).catch(() => alive && setErr(t('メールを読み込めませんでした。EML 形式ではない可能性があります。')));
     return () => { alive = false; };

@@ -42,7 +42,7 @@ export function setLang(l: Lang, persist = true) {
   lang = l; if (persist) write(LANG_KEY, l);
   document.documentElement.lang = l;
   document.title = t('なんでもローカルビューア | a-ef');
-  document.querySelector('meta[name="description"]')?.setAttribute('content', t('PDF・メール・CAD・Office ファイルを、アップロードせずブラウザだけで表示します。'));
+  document.querySelector('meta[name="description"]')?.setAttribute('content', t('PDF・画像・動画・メール・CAD・3D・表データ・圧縮ファイルなどを、アップロードせずブラウザだけで表示します。'));
   emit();
 }
 export const useLang = () => useSyncExternalStore(subscribe, getLang, getLang);

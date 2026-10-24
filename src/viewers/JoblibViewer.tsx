@@ -34,19 +34,19 @@ export default function JoblibViewer({ file }: { file: File }) {
       </dl>
       {scan.globals.length > 0 && (
         <div className="attachments">
-          <div className="label mono">REFERENCED TYPES · {scan.globals.length}</div>
+          <div className="label mono">{t('参照している型')} · {scan.globals.length}</div>
           <ul data-testid="joblib-types">{scan.globals.map((g) => <li key={g}><span className="att-name mono">{g}</span></li>)}</ul>
         </div>
       )}
       {scan.strings.length > 0 && (
         <div className="attachments">
-          <div className="label mono">STRINGS · {scan.strings.length}</div>
+          <div className="label mono">{t('文字列')} · {scan.strings.length}</div>
           <ul data-testid="joblib-strings">{scan.strings.map((g, i) => <li key={i}><span className="att-name mono">{g}</span></li>)}</ul>
         </div>
       )}
       {scan.numbers.length > 0 && (
         <div className="attachments">
-          <div className="label mono">NUMBERS · {scan.numbers.length}</div>
+          <div className="label mono">{t('数値')} · {scan.numbers.length}</div>
           <p className="mono" data-testid="joblib-nums">{scan.numbers.join(', ')}</p>
         </div>
       )}

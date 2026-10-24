@@ -144,9 +144,10 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .tree { border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--sp-3); max-height: 66vh; overflow: auto; font-size: var(--fs-sm); }
 .tree ul { list-style: none; margin: 0; padding-left: 14px; }
 .tree > ul { padding-left: 0; }
-.tree label { display: flex; gap: 6px; align-items: center; padding: 1px 0; word-break: break-all; }
+.tree .tree-row { display: flex; gap: 6px; align-items: center; padding: 1px 0; }
+.tree label { display: flex; flex: 1; min-width: 0; gap: 6px; align-items: center; word-break: break-all; cursor: pointer; }
 .tree input { accent-color: var(--signal); }
-.tree .twisty { width: 14px; border: 0; background: none; padding: 0; min-height: 0; color: var(--ink-3); cursor: pointer; }
+.tree .twisty { width: 24px; min-width: 24px; height: 24px; display: inline-grid; place-items: center; flex: none; border: 0; background: none; padding: 0; min-height: 0; color: var(--ink-3); cursor: pointer; }
 .three-layout { display: grid; grid-template-columns: 1fr 260px; gap: var(--sp-3); }
 @media (max-width: 860px) { .three-layout { grid-template-columns: 1fr; } }
 .picked { margin: var(--sp-2) 0 0; font-size: var(--fs-sm); color: var(--ink-2); }

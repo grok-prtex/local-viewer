@@ -9,9 +9,12 @@ export interface MailData {
   html?: string; text?: string; attachments: MailAttachment[];
 }
 
+const MISSING_IMG = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48"><rect width="48" height="48" rx="6" fill="#EEF0EC" stroke="#C2C5BE"/><path d="M16 16l16 16M32 16L16 32" stroke="#878D95" stroke-width="3"/></svg>');
+
 /** 外部リソースを読まないメール本文 HTML（スクリプト無効・リモート画像は CSP で遮断） */
 function buildSrcdoc(html: string, inline: Map<string, string>): string {
-  const body = html.replace(/cid:([^"'\s)>]+)/gi, (m, id) => inline.get(id.toLowerCase()) ?? m);
+  // 添付に見つからない cid: 画像は、遮断エラーの代わりに「画像なし」の目印に置き換えます
+  const body = html.replace(/cid:([^"'\s)>]+)/gi, (_m, id) => inline.get(id.toLowerCase()) ?? MISSING_IMG);
   const csp = "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:";
   return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${csp}"><base target="_blank"><style>body{font-family:"IBM Plex Sans JP",system-ui,sans-serif;font-size:15px;line-height:1.65;color:#15171A;margin:16px;word-break:break-word}img{max-width:100%}</style></head><body>${body}</body></html>`;
 }
@@ -48,7 +51,7 @@ export default function MailView({ mail, inlineImages, onOpen, canOpen }: {
       </dl>
       {mail.attachments.length > 0 && (
         <div className="attachments">
-          <div className="label mono">ATTACHMENTS · {mail.attachments.length}</div>
+          <div className="label mono">{t('添付ファイル')} · {mail.attachments.length}</div>
           <ul>
             {mail.attachments.map((a, i) => (
               <li key={i}>

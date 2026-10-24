@@ -64,7 +64,7 @@ export default function ZipViewer({ file, onOpen, canOpenName }: { file: File; o
   };
   return (
     <div className="zip">
-      <div className="label mono">ENTRIES · {files.length}</div>
+      <div className="label mono">{t('収録ファイル')} · {files.length}</div>
       <ul data-testid="zip-list" className={flat ? '' : 'ztree'}>
         {[...root.dirs.values()].sort((a, b) => a.name.localeCompare(b.name)).map((c) => <DirView key={c.path} d={c} depth={0} />)}
         {root.files.map(row)}

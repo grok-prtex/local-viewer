@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import MDBReader from 'mdb-reader';
 import { ErrorBox } from '../ui';
 import { Progress, readWithProgress, type ProgressState } from '../progress';
-import { t } from '../i18n';
+import { t, getLang } from '../i18n';
 import { useColResize } from './colResize';
 
 const PAGE = 100;
 
 function cell(v: unknown): string {
   if (v == null) return 'NULL';
-  if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toLocaleString('ja-JP');
+  if (v instanceof Date) return isNaN(v.getTime()) ? '' : v.toLocaleString(getLang() === 'ja' ? 'ja-JP' : 'en-US');
   if (typeof ArrayBuffer !== 'undefined' && v instanceof ArrayBuffer) return t('バイナリ（{0} バイト）', v.byteLength);
   if (v instanceof Uint8Array) return t('バイナリ（{0} バイト）', v.length);
   if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
@@ -73,7 +73,7 @@ export default function AccessViewer({ file }: { file: File }) {
       {err && <ErrorBox>{err}</ErrorBox>}
       <div className="sql-layout">
         <aside className="sql-side">
-          <div className="label mono">TABLES · {tables.length}</div>
+          <div className="label mono">{t('テーブル')} · {tables.length}</div>
           <ul data-testid="access-tables">
             {tables.map((n) => (
               <li key={n}>

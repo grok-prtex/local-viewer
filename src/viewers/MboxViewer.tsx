@@ -57,7 +57,7 @@ export default function MboxViewer({ file, onOpen }: { file: File; onOpen: (f: F
   return (
     <div className="mbox" data-testid="mbox-view">
       <div className="mbox-bar">
-        <div className="label mono">MESSAGES · {data.list.length.toLocaleString()}</div>
+        <div className="label mono">{t('メッセージ')} · {data.list.length.toLocaleString()}</div>
         <input type="search" className="mbox-q" placeholder={t('件名・差出人で絞り込み')} aria-label={t('件名・差出人で絞り込み')} value={q} onChange={(e) => { setQ(e.target.value); setShown(PAGE); }} data-testid="mbox-q" />
       </div>
       <ul className="mbox-list" data-testid="mbox-list">
