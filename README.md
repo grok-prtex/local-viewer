@@ -34,6 +34,12 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 | Media | MP4 / MOV / WebM / MKV / MP3 / WAV / M4A / OGG / FLAC | ブラウザが再生できる範囲で対応（blob URL） | — |
 | Media | AVI / WMV / FLV など | 準備中（コンテナとコーデックを表示）。ffmpeg.wasm は約 30MB で見送り | — |
 | Archive | ZIP | 対応（一覧、保存、中の対応ファイルをそのまま表示） | JSZip |
+| Archive | 7z / TAR / GZ / TGZ | 対応（ZIP と同じ一覧・保存・表示。.gz は中のファイルを開く。暗号化・壊れたファイルは案内。7z は 512MB、gz は展開後 1GB まで） | libarchive.js（WASM、/vendor/libarchive から配信）/ ブラウザ標準の DecompressionStream / 自前の tar 読み取り |
+| Office | TSV | 対応（列幅を変更可、UTF-8 / UTF-16 / Shift_JIS） | 自前 |
+| Office | Parquet | 対応（列の型・行数・ページ送り・列幅） | hyparquet ＋ hyparquet-compressors |
+| Mail | MBOX | 対応（日付・差出人・件名の一覧、件名で EML 表示。ISO-2022-JP / Shift_JIS / UTF-8） | 自前 ＋ postal-mime |
+| CAD | OBJ（+MTL）/ 3MF / glTF / GLB / PLY | 対応（同時に選んだ MTL・テクスチャ・.bin を使う。Draco 圧縮の glTF も可） | Three.js（OBJLoader / MTLLoader / 3MFLoader / GLTFLoader / DRACOLoader / PLYLoader） |
+| Font | TTF / OTF / WOFF / WOFF2 | 対応（情報、日本語・英語の見本、文字の入力、グリフ一覧、可変フォントの軸） | fontkit |
 
 3D ビューアは、回転・移動・拡大縮小・全体表示・ワイヤーフレーム切替・背景の白黒切替と、外形寸法（バウンディングボックス）の表示ができます。
 
@@ -48,7 +54,7 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 ### CSP の全文（`public/_headers`）
 すべてのパス:
 ```
-default-src 'none'; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' blob: data:; child-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
+default-src 'none'; media-src 'self' blob:; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: data:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-src 'self' blob: data:; child-src 'self' blob: data:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; manifest-src 'self'
 ```
 `/occt-worker / xlsx-worker.js`（STEP / IGES を読む Web Worker）だけ:
 ```
@@ -58,7 +64,7 @@ default-src 'none'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; connect-
 | 指定 | 理由 |
 |---|---|
 | `default-src 'none'` | 明示していない種類の読み込みは、すべて禁止します。 |
-| `connect-src 'self'` | fetch / XHR / WebSocket は自サイトのみ。自サイトにもファイルを受け取る仕組みはありません。 |
+| `connect-src 'self' blob: data:` | fetch / XHR / WebSocket は自サイトのみ。自サイトにもファイルを受け取る仕組みはありません。`blob:` `data:` はブラウザ内のメモリを読むためのもので（glTF の埋め込みデータ、選んだファイルから作った Blob URL）、外部には出ていきません。 |
 | `script-src 'self' 'wasm-unsafe-eval'` | スクリプトは自サイトのみ。`'wasm-unsafe-eval'` は WebAssembly（OpenCascade、libheif、JPEG XL、PDF.js の一部）のコンパイルに必要です。JavaScript の eval は許可していません。 |
 | `/occt-worker.js` の `'unsafe-eval'` | **例外はここだけです。** OpenCascade を Emscripten で WASM 化した occt-import-js が、内部で `new Function` を使うためです。この Worker の CSP は `default-src 'none'` と `connect-src 'self'` なので、外部とは通信できません。メイン画面には `'unsafe-eval'` を許可していません。 |
 | `media-src 'self' blob:` | 動画・音声を、ブラウザ内で作った `blob:` URL で再生するためです。外部の URL は対象外です。 |
