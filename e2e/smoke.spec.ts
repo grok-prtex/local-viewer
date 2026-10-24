@@ -38,7 +38,8 @@ test('ドロップ画面', async ({ page, baseURL }) => {
   const w = watch(page, baseURL!);
   await page.goto('/');
   await expect(page.getByText('ファイルはPCから外部送信されません')).toBeVisible();
-  await expect(page.getByText('準備中').first()).toBeVisible();
+  await expect(page.getByText('準備中')).toHaveCount(0);
+  await expect(page.getByText(/AVI|WMV|FLV/)).toHaveCount(0);
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: `${SHOTS}/00-drop.png`, fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
@@ -222,15 +223,15 @@ test('動画・音声（再生できる形式）', async ({ page, baseURL }) => 
   w.assertClean('media/sample.mp4'); expect(w.problems).toEqual([]);
 });
 
-test('動画（再生できない形式はコンテナ情報を表示）', async ({ page }) => {
-  await page.goto('/');
-  await page.getByTestId('file-input').setInputFiles(path.join(FX, 'media/sample.avi'));
-  await expect(page.getByTestId('media-info')).toContainText('AVI', { timeout: 15000 });
-  await expect(page.getByTestId('media-info')).toContainText('XVID');
-  await page.screenshot({ path: `${SHOTS}/22-video-avi.png` });
-  await page.goto('/');
-  await page.getByTestId('file-input').setInputFiles(path.join(FX, 'media/sample.flv'));
-  await expect(page.getByTestId('media-info')).toContainText('FLV', { timeout: 15000 });
+test('AVI / FLV は非対応：未対応ファイルとして案内', async ({ page }) => {
+  for (const f of ['media/sample.avi', 'media/sample.flv']) {
+    await page.goto('/');
+    await page.getByTestId('file-input').setInputFiles(path.join(FX, f));
+    await expect(page.getByText('この形式のファイルには、まだ対応していません。')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByTestId('video')).toHaveCount(0);
+    await expect(page.getByText('準備中')).toHaveCount(0);
+  }
+  await page.screenshot({ path: `${SHOTS}/22-video-avi-unknown.png` });
 });
 
 test('ZIP 内の画像と動画を開く', async ({ page, baseURL }) => {

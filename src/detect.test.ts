@@ -53,7 +53,17 @@ describe('画像・動画の判定', () => {
     expect(detectFormat('noext', m('sample.heic'))).toBe('image');
   });
   it('動画・音声', () => {
-    for (const n of ['sample.mp4', 'sample.webm', 'sample.avi', 'sample.flv']) expect(detectFormat(n, m(n)), n).toBe('video');
+    for (const n of ['sample.mp4', 'sample.webm']) expect(detectFormat(n, m(n)), n).toBe('video');
+    // AVI / WMV / FLV は 2026-10-24 に非対応化：拡張子でも中身でも未対応扱い
+    for (const n of ['sample.avi', 'sample.flv']) expect(detectFormat(n, m(n)), n).toBe('unknown');
+    expect(detectFormat('clip.mp4', m('sample.avi'))).toBe('unknown');
+    expect(detectFormat('clip.bin', m('sample.flv'))).toBe('unknown');
+    const asf = new Uint8Array([0x30, 0x26, 0xb2, 0x75, 0x8e, 0x66, 0xcf, 0x11, 0, 0, 0, 0]);
+    expect(detectFormat('movie.wmv', asf)).toBe('unknown');
+    expect(detectFormat('movie.bin', asf)).toBe('unknown');
+    expect(detectFormat('song.wma', asf)).toBe('audio');
+    expect(FORMATS.some((f) => f.exts.some((x) => ['avi', 'wmv', 'flv'].includes(x)))).toBe(false);
+    expect(FORMATS.every((f) => f.ready)).toBe(true);
     for (const n of ['sample.wav', 'sample.mp3']) expect(detectFormat(n, m(n)), n).toBe('audio');
     expect(detectFormat('clip.bin', m('sample.mp4'))).toBe('video');
   });

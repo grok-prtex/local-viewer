@@ -29,7 +29,6 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 | Image | TIFF（複数ページ）/ PSD（合成画像）/ TGA / JPEG XL | 対応 | UTIF.js（MIT）/ ag-psd（MIT）/ Three.js TGALoader / @jsquash/jxl（Apache-2.0） |
 | Image | カメラ RAW | 埋め込みプレビュー JPEG を表示（現像はしない） | 自前 |
 | Media | MP4 / MOV / WebM / MKV / MP3 / WAV / M4A / OGG / FLAC | ブラウザが再生できる範囲で対応（blob URL） | — |
-| Media | AVI / WMV / FLV など | 準備中（コンテナとコーデックを表示）。ffmpeg.wasm は約 30MB で見送り | — |
 | Archive | ZIP | 対応（一覧、保存、中の対応ファイルをそのまま表示） | JSZip |
 | Archive | 7z / TAR / GZ / TGZ | 対応（ZIP と同じ一覧・保存・表示。.gz は中のファイルを開く。暗号化・壊れたファイルは案内。7z は 512MB、gz は展開後 1GB まで） | libarchive.js（WASM、/vendor/libarchive から配信）/ ブラウザ標準の DecompressionStream / 自前の tar 読み取り |
 | Office | TSV | 対応（列幅を変更可、UTF-8 / UTF-16 / Shift_JIS） | 自前 |
@@ -38,7 +37,7 @@ TXT / LOG / INI などは文字コードを自動判定します（UTF-8 / UTF-1
 | CAD | OBJ（+MTL）/ 3MF / glTF / GLB / PLY | 対応（同時に選んだ MTL・テクスチャ・.bin を使う。Draco 圧縮の glTF も可） | Three.js（OBJLoader / MTLLoader / 3MFLoader / GLTFLoader / DRACOLoader / PLYLoader） |
 | Font | TTF / OTF / WOFF / WOFF2 | 対応（情報、日本語・英語の見本、文字の入力、グリフ一覧、可変フォントの軸） | fontkit |
 
-Word・Excel・PowerPoint・DWG は表示品質が基準に届かないため非対応です（詳細は OFFICE.md）。開くと未対応ファイルとして案内します。
+Word・Excel・PowerPoint・DWG は表示品質が基準に届かないため非対応です（詳細は OFFICE.md）。AVI・WMV・FLV もブラウザで再生できず、同梱できる変換手段（ffmpeg.wasm は約 30 MB・GPL/LGPL の構成・低速）がないため非対応です。いずれも開くと未対応ファイルとして案内します。「準備中」の形式はありません。
 
 3D ビューアは、回転・移動・拡大縮小・全体表示・ワイヤーフレーム切替・背景の白黒切替と、外形寸法（バウンディングボックス）の表示ができます。
 

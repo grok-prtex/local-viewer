@@ -35,8 +35,6 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .group li:first-child { border-top: 0; }
 .group .fmt { font-weight: var(--w-medium); }
 .group .exts { font-size: var(--fs-xs); color: var(--ink-3); }
-.group li.pending .fmt { color: var(--ink-3); }
-.badge { font-size: var(--fs-micro); padding: 1px 8px; border-radius: var(--r-pill); background: var(--paper-2); color: var(--ink-2); border: 1px solid var(--line); }
 .about p { color: var(--ink-2); max-width: 760px; margin: 0 0 var(--sp-3); }
 
 .viewer-head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-4); flex-wrap: wrap; }

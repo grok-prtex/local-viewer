@@ -1,9 +1,8 @@
-import { t as tt } from './i18n';
-/** 画像・動画・音声の形式判定と、再生できない動画のコンテナ／コーデック情報の読み取り */
+/** 画像・動画・音声の形式判定と、再生できない動画・音声のコンテナ／コーデック情報の読み取り（AVI / WMV / FLV は 2026-10-24 に非対応化） */
 export type ImageSub = 'native' | 'heic' | 'tiff' | 'psd' | 'raw' | 'tga' | 'jxl' | 'svg';
 export const NATIVE_IMAGE_EXTS = ['png', 'jpg', 'jpeg', 'jfif', 'gif', 'webp', 'avif', 'bmp', 'ico', 'svg'];
 export const RAW_EXTS = ['cr2', 'cr3', 'nef', 'nrw', 'arw', 'srf', 'sr2', 'dng', 'raf', 'orf', 'rw2', 'pef', 'srw', 'x3f', 'erf', 'kdc', 'mrw', '3fr', 'iiq', 'rwl'];
-export const VIDEO_EXTS = ['mp4', 'm4v', 'mov', 'webm', 'mkv', 'avi', 'wmv', 'flv', 'mpg', 'mpeg', 'ts', 'm2ts', 'mts', '3gp', 'ogv'];
+export const VIDEO_EXTS = ['mp4', 'm4v', 'mov', 'webm', 'mkv', 'mpg', 'mpeg', 'ts', 'm2ts', 'mts', '3gp', 'ogv'];
 export const AUDIO_EXTS = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'flac', 'wma'];
 
 /** バイト列を 1 バイト 1 文字の文字列に（大きい範囲でも引数の上限を超えないよう 32 KB ずつ） */
@@ -48,10 +47,8 @@ export function mediaKind(ext: string, h: Uint8Array): MediaKind | null {
   const t = ascii(h, 0, 12);
   const brand = ftypBrand(h);
   if (brand) return /^(M4A |M4B |mp4a)$/.test(brand) || ext === 'm4a' ? 'audio' : 'video';
-  if (t.startsWith('RIFF') && t.slice(8, 12) === 'AVI ') return 'video';
   if (t.startsWith('RIFF') && t.slice(8, 12) === 'WAVE') return 'audio';
   if (h[0] === 0x1a && h[1] === 0x45 && h[2] === 0xdf && h[3] === 0xa3) return ext === 'mka' ? 'audio' : 'video';
-  if (t.startsWith('FLV')) return 'video';
   if (h[0] === 0x30 && h[1] === 0x26 && h[2] === 0xb2 && h[3] === 0x75) return ext === 'wma' ? 'audio' : 'video';
   if (t.startsWith('OggS')) return ext === 'ogv' ? 'video' : 'audio';
   if (t.startsWith('ID3') || t.startsWith('fLaC') || (h[0] === 0xff && (h[1] & 0xe0) === 0xe0 && AUDIO_EXTS.includes(ext))) return 'audio';
@@ -69,27 +66,10 @@ export function probeMedia(b: Uint8Array): { container: string; codecs: string[]
   if (ftypBrand(b)) {
     container = ftypBrand(b) === 'qt  ' ? 'QuickTime (MOV)' : `MP4 (${ftypBrand(b)!.trim()})`;
     for (let i = s.indexOf('stsd'); i >= 0; i = s.indexOf('stsd', i + 4)) { const fcc = s.slice(i + 16, i + 20); if (/^[\w. -]{4}$/.test(fcc)) codecs.add(fcc.trim()); }
-  } else if (t.startsWith('RIFF') && t.slice(8, 12) === 'AVI ') {
-    container = 'AVI';
-    for (let i = s.indexOf('strh'); i >= 0; i = s.indexOf('strh', i + 4)) {
-      const type = s.slice(i + 8, i + 12), h = s.slice(i + 12, i + 16);
-      if (type === 'vids') codecs.add(h.replace(/\0/g, '').trim() || tt('（不明）'));
-      if (type === 'auds') { const f = s.indexOf('strf', i); if (f > 0) { const tag = b[f + 8] | (b[f + 9] << 8); codecs.add(({ 1: 'PCM', 0x55: 'MP3', 0xff: 'AAC', 0x2000: 'AC-3', 0x161: 'WMA' } as Record<number, string>)[tag] ?? tt('音声 0x{0}', tag.toString(16))); } }
-    }
   } else if (b[0] === 0x1a && b[1] === 0x45) {
     container = /webm/.test(s.slice(0, 64)) ? 'WebM' : 'Matroska (MKV)';
     for (const m of s.matchAll(/[VAS]_[A-Z0-9][A-Z0-9/._-]{1,30}/g)) codecs.add(m[0]);
-  } else if (t.startsWith('FLV')) {
-    container = 'FLV';
-    const vc = ({ 2: 'Sorenson H.263', 3: 'Screen video', 4: 'VP6', 5: 'VP6 Alpha', 7: 'H.264' } as Record<number, string>);
-    let o = (b[5] << 24 | b[6] << 16 | b[7] << 8 | b[8]) + 4;
-    for (let n = 0; n < 50 && o + 12 < b.length; n++) {
-      const type = b[o], size = b[o + 1] << 16 | b[o + 2] << 8 | b[o + 3];
-      if (type === 9) codecs.add(vc[b[o + 11] & 0x0f] ?? tt('映像（不明）'));
-      if (type === 8) codecs.add((b[o + 11] >> 4) === 10 ? 'AAC' : (b[o + 11] >> 4) === 2 ? 'MP3' : tt('音声（その他）'));
-      o += 11 + size + 4;
-    }
-  } else if (b[0] === 0x30 && b[1] === 0x26) container = 'ASF (WMV / WMA)';
+  } else if (b[0] === 0x30 && b[1] === 0x26) container = 'ASF (WMA)';
   else if (t.startsWith('OggS')) container = 'Ogg';
   else if (b[0] === 0x47 && b[188] === 0x47) container = 'MPEG-TS';
   else if (b[0] === 0 && b[1] === 0 && b[2] === 1 && b[3] === 0xba) container = 'MPEG-PS (MPG)';

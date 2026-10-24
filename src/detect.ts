@@ -48,7 +48,6 @@ export const FORMATS: FormatInfo[] = [
   { kind: 'image', label: 'TGA / JPEG XL', group: 'Image', exts: ['tga', 'jxl'], ready: true },
   { kind: 'video', label: '動画', group: 'Media', exts: ['mp4', 'mov', 'webm', 'mkv'], ready: true },
   { kind: 'audio', label: '音声', group: 'Media', exts: ['mp3', 'wav', 'm4a', 'ogg', 'flac'], ready: true },
-  { kind: 'video', label: 'AVI / WMV / FLV', group: 'Media', exts: ['avi', 'wmv', 'flv'], ready: false },
   { kind: 'zip', label: 'ZIP', group: 'Archive', exts: ['zip'], ready: true },
   { kind: 'archive', label: '7z', group: 'Archive', exts: ['7z'], ready: true },
   { kind: 'archive', label: 'tar / gzip', group: 'Archive', exts: ['tar', 'gz', 'tgz'], ready: true },
@@ -73,6 +72,15 @@ function ascii(b: Uint8Array, n = 512): string {
   return s;
 }
 
+const LEGACY_VIDEO = new Set(['avi', 'wmv', 'asf', 'flv']);
+/** RIFF-AVI・ASF（WMV）・FLV の先頭バイト。拡張子が違っても未対応として扱う（.wma は音声として従来どおり） */
+function isLegacyVideo(ext: string, h: Uint8Array): boolean {
+  const t = ascii(h, 12);
+  if (t.startsWith('RIFF') && t.slice(8, 12) === 'AVI ') return true;
+  if (t.startsWith('FLV') && h[3] === 1) return true;
+  return ext !== 'wma' && startsWith(h, [0x30, 0x26, 0xb2, 0x75, 0x8e, 0x66, 0xcf, 0x11]);
+}
+
 /**
  * ファイル名と先頭バイトから形式を判定します。
  * 中身のシグネチャを優先し、判別できない場合は拡張子で判定します。
@@ -80,6 +88,8 @@ function ascii(b: Uint8Array, n = 512): string {
 export function detectFormat(name: string, head: Uint8Array): FormatKind {
   const ext = extOf(name);
   const text = ascii(head);
+  // AVI / WMV / FLV（ASF・FLV コンテナ）はブラウザで再生できず、同梱できる変換手段もないため非対応（2026-10-24 削除）。中身の判定より前に止める
+  if (LEGACY_VIDEO.has(ext) || isLegacyVideo(ext, head)) return 'unknown';
   const brand = ftypBrand(head);
   if (brand) {
     if (imageSub(ext, head) === 'heic' || /^(avif|avis|crx )$/.test(brand)) return 'image';

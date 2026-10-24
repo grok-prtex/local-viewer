@@ -120,10 +120,9 @@ export default function App() {
                     <div className="label mono" data-group={g}>{g === 'Code' ? t('プログラム') : g === 'Font' ? t('フォント') : g.toUpperCase()}</div>
                     <ul>
                       {FORMATS.filter((f) => f.group === g).map((f) => (
-                        <li key={f.label} className={f.ready ? '' : 'pending'}>
+                        <li key={f.label}>
                           <span className="fmt">{t(f.label)}</span>
                           <span className="mono exts">{f.exts.map((x) => '.' + x).join(' ')}</span>
-                          {!f.ready && <span className="badge">{t('準備中')}</span>}
                         </li>
                       ))}
                     </ul>
