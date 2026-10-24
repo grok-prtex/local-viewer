@@ -94,7 +94,6 @@ export default function App() {
     <div className={'app' + (drag ? ' dragging' : '')}>
       <header className="top">
         <a className="brand" href="/" onClick={(e) => { e.preventDefault(); setStack([]); }}>
-          <span className="mono code">VWR-001</span>
           <span className="title">{t('なんでもローカルビューア')}</span>
         </a>
         <div className="privacy-wrap">

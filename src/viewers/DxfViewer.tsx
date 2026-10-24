@@ -24,6 +24,10 @@ function wrapLines(ctx: CanvasRenderingContext2D, t: TextItem): string[] {
   }
   return out;
 }
+const fmtLen = (v: number) => (Math.abs(v) >= 1000 ? v.toFixed(0) : Math.abs(v) >= 100 ? v.toFixed(1) : v.toFixed(2));
+/** $INSUNITS（AutoCAD の図面単位コード）を表示用の単位にします。未設定・0 は単位不明 */
+const UNITS: Record<number, string> = { 1: 'in', 2: 'ft', 3: 'mi', 4: 'mm', 5: 'cm', 6: 'm', 7: 'km', 8: 'µin', 9: 'mil', 10: 'yd', 11: 'Å', 12: 'nm', 13: 'µm', 14: 'dm', 15: 'dam', 16: 'hm', 17: 'Gm', 18: 'AU', 19: 'ly', 20: 'pc' };
+function unitLabel(code: unknown): string { const n = Number(code); return UNITS[n] ?? t('（単位不明）'); }
 export default function DxfViewer({ file }: { file: File }) {
   const host = useRef<HTMLDivElement>(null);
   const hidden0 = useMemo(() => new Set<string>(), []);
@@ -33,6 +37,7 @@ export default function DxfViewer({ file }: { file: File }) {
   const hiddenRef = useRef(hidden0);
   const [err, setErr] = useState('');
   const [hidden, setHidden] = useState<Set<string>>(hidden0);
+  const [ext, setExt] = useState<{ w: number; h: number } | null>(null);
   const [bg, setBgMode] = useState<Bg>(() => (resolvedTheme() === 'light' ? 'light' : 'dark'));
   const bgRef = useRef<Bg>(bg);
   const api = useRef<{ fit: () => void; lines: Map<string, THREE.Object3D>; setBg: (m: Bg) => void; redraw: () => void } | null>(null);
@@ -80,6 +85,7 @@ export default function DxfViewer({ file }: { file: File }) {
       g.add(new THREE.LineSegments(geo, m));
     }
     const box = new THREE.Box3().setFromObject(scene);
+    if (!box.isEmpty()) { const z = box.getSize(new THREE.Vector3()); setExt({ w: z.x, h: z.y }); } else setExt(null);
     for (const tx of data.texts) {
       // 文字のおおよその外形（回転を考慮）も全体表示に含めます
       const ls = tx.s.split('\n'), wd = Math.min(tx.width ?? Infinity, tx.h * 1.1 * Math.max(...ls.map((l) => l.length))), ht = tx.h * 1.7 * ls.length;
@@ -171,6 +177,7 @@ export default function DxfViewer({ file }: { file: File }) {
         <button onClick={() => api.current?.fit()}>{t('全体表示')}</button>
         <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">{t('背景')} {bg === 'light' ? t('ライト') : bg === 'dark' ? t('ダーク') : t('ジェード')}</button>
         {paper && <button onClick={() => setMode(mode === 'paper' ? 'model' : 'paper')} data-testid="dxf-space">{mode === 'paper' ? t('レイアウト表示中（モデルに切替）') : t('モデル表示中（レイアウトに切替）')}</button>}
+        {ext && <span className="mono dxf-dims" data-testid="dxf-dims" title={t('図形（線・円など）の外形の幅 × 高さ。単位は図面の設定（$INSUNITS）によります。')}>{t('外形')} {fmtLen(ext.w)} × {fmtLen(ext.h)} {unitLabel(dxf?.header?.$INSUNITS)}</span>}
         {data.skipped > 0 && <span className="hint-inline" title={Object.entries(data.skippedTypes).map(([k, v]) => `${k}: ${v}`).join('\n')}>{t('ハッチング・画像など {0} 件は、現在は表示していません。', data.skipped)}</span>}
       </div>
       <div className="dxf-layout">

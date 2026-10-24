@@ -76,7 +76,6 @@ h2 { font-size: var(--fs-h4); font-weight: var(--w-semibold); margin: var(--sp-1
 .person-pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; display: flex; flex-direction: column; gap: var(--sp-1);
   width: max-content; min-width: 200px; max-width: calc(100vw - 32px); padding: var(--sp-3); background: var(--surface); border: 1px solid var(--line-2);
   border-radius: var(--r-lg); box-shadow: var(--sh-3); }
-  border-radius: var(--r-lg); box-shadow: 0 6px 24px rgba(21, 23, 26, 0.12); }
 .pop-name { font-weight: var(--w-semibold); }
 .pop-addr { font-size: var(--fs-sm); color: var(--ink-2); white-space: nowrap; user-select: all; }
 /* 画面に収まらないときだけ折り返す（@ の前後を優先、最後の手段で任意の位置） */
@@ -330,3 +329,52 @@ body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-sel
 .slice-top .label { display: block; }
 .slice-top canvas { display: block; border: 1px solid var(--line); border-radius: var(--r-sm, 6px); max-width: 100%; }
 @media (max-width: 860px) { .slice-panel { grid-template-columns: minmax(0, 1fr); } }
+/* ── 3D の表示の設定：PC は横並び、スマホは「…」メニュー ── */
+.tb3d { position: relative; }
+.tb3d .tb-more { display: none; }
+.tb3d .tb-extra { display: contents; }
+@media (max-width: 720px) {
+  .tb3d { flex-wrap: wrap; row-gap: 4px; }
+  .tb3d > button { white-space: nowrap; }
+  .tb3d .tb-more { display: inline-flex; align-items: center; gap: 6px; }
+  .tb3d .tb-more > span[aria-hidden] { font-size: 1.2em; line-height: 1; letter-spacing: 1px; }
+  .tb3d .tb-extra { display: none; }
+  .tb3d .tb-extra.open { display: flex; flex-direction: column; align-items: stretch; gap: 4px; position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: min(280px, calc(100vw - 48px));
+    padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--sh-3); }
+  .tb3d .tb-extra.open button { text-align: left; width: 100%; }
+  .tb3d .dims { white-space: nowrap; flex: 1 1 auto; text-align: right; }
+}
+
+/* PC でもツリーとレイヤーのチェックボックスは大きめに */
+.tree input[type=checkbox], .layers input[type=checkbox] { width: 18px; height: 18px; flex: none; margin: 0; }
+.tree .tree-row, .layers label { min-height: 28px; }
+/* ── スマホ・タッチ：押せるものは 44px 以上 ── */
+@media (max-width: 720px), (pointer: coarse) {
+  button, .toolbar select, .findbar input, .sql-query input, .mbox-q { min-height: 44px; }
+  .seg button { min-height: 44px; min-width: 44px; padding: 4px 12px; }
+  .tree .twisty { width: 44px; min-width: 44px; height: 44px; }
+  .tree .tree-row { min-height: 44px; }
+  .tree label, .layers label { min-height: 44px; }
+  .tree input[type=checkbox], .layers input[type=checkbox] { width: 22px; height: 22px; flex: none; }
+  .foot a { min-height: 44px; }
+  .sql-side button { min-height: 44px; }
+  .zdir-btn, .mbox-subj { min-height: 44px; }
+  .slice-row button { min-width: 44px; }
+  .people-more { min-height: 44px; display: inline-flex; align-items: center; }
+  .person-chip { min-height: 44px; align-items: center; }
+  .drop-sub .link { display: inline-block; min-height: 44px; line-height: 44px; }
+  .brand { min-height: 44px; align-items: center; }
+}
+
+/* ── 列幅のつまみ：見える幅 9px・掴める幅 24px（セルの内側に収めます） ── */
+.col-rs { width: 24px; right: 0; }
+.col-rs::after { left: auto; right: 2px; width: 9px; top: 22%; bottom: 22%; border-radius: 3px; background: transparent;
+  border-left: 2px solid var(--line-2); border-right: 2px solid var(--line-2); box-sizing: border-box; }
+th:hover > .col-rs::after, .col-rs:hover::after, .col-rs:focus-visible::after { border-color: var(--line-strong); background: var(--paper-2); }
+.col-rs.active::after { top: 0; bottom: 0; border-color: var(--signal); background: var(--signal-wash); }
+@media (pointer: coarse) { .col-rs { width: 28px; right: 0; } .col-rs::after { left: auto; right: 3px; border-color: var(--line-strong); } }
+th:has(> .col-rs) { padding-right: 26px; }
+@media (pointer: coarse) { th:has(> .col-rs) { height: 44px; } }
+
+/* DXF の外形寸法 */
+.dxf-dims { margin-left: auto; color: var(--ink-2); font-size: var(--fs-xs); }

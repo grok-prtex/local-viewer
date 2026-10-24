@@ -44,6 +44,17 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
   const [bg, setBgMode] = useState<'light' | 'dark' | 'jade'>(() => (resolvedTheme() === 'dark' ? 'dark' : 'light'));
   const bg0 = useRef(bg);
   const [size, setSize] = useState<THREE.Vector3 | null>(null);
+  // スマホでは表示の設定を「…」メニューにまとめ、モデルが下に押し出されないようにします
+  const [menu, setMenu] = useState(false);
+  const [coarse] = useState(() => typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches);
+  const tb = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const off = (e: Event) => { if (tb.current && !tb.current.contains(e.target as Node)) setMenu(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(false); };
+    document.addEventListener('pointerdown', off); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('keydown', esc); };
+  }, [menu]);
 
   useEffect(() => {
     const el = host.current!;
@@ -213,15 +224,18 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
 
   return (
     <div className="three-wrap">
-      <div className="toolbar">
+      <div className="toolbar tb3d" ref={tb}>
         <button onClick={() => api.current?.fit()}>{t('全体表示')}</button>
-        <button aria-pressed={wire} onClick={() => { setWire(!wire); api.current?.setWire(!wire); }}>{t('ワイヤーフレーム')}</button>
-        <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">{t('背景')} {bg === 'light' ? t('ライト') : bg === 'dark' ? t('ダーク') : t('ジェード')}</button>
-        <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>{t('原点・グリッド')}</button>
-        <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title={t('モデルの上方向を切り替えます')}>{t('上方向')} {up.toUpperCase()}</button>
-        <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">{t('回転中心：')}{t(pivotNote)}</button>
-        <button aria-pressed={ghost} onClick={() => { setGhost(!ghost); api.current?.setGhost(!ghost); }} title={t('部品を選んだとき、ほかの部品を薄く表示します')}>{t('ゴースト表示')}</button>
-        <button aria-pressed={colors} onClick={() => { setColors(!colors); api.current?.setColors(!colors); }}>{t('部品ごとに色分け')}</button>
+        <button className="tb-more" aria-expanded={menu} aria-haspopup="true" aria-controls="tb3d-extra" aria-label={t('表示の設定')} title={t('表示の設定')} onClick={() => setMenu(!menu)} data-testid="tb-more"><span aria-hidden>…</span><span className="tb-more-label">{t('表示の設定')}</span></button>
+        <div className={'tb-extra' + (menu ? ' open' : '')} id="tb3d-extra" data-testid="tb-extra">
+          <button aria-pressed={wire} onClick={() => { setWire(!wire); api.current?.setWire(!wire); }}>{t('ワイヤーフレーム')}</button>
+          <button onClick={() => { const o = (['light', 'dark', 'jade'] as const); const n = o[(o.indexOf(bg) + 1) % 3]; setBgMode(n); api.current?.setBg(n); }} data-testid="bg">{t('背景')} {bg === 'light' ? t('ライト') : bg === 'dark' ? t('ダーク') : t('ジェード')}</button>
+          <button aria-pressed={grid} onClick={() => { setGrid(!grid); api.current?.setGrid(!grid); }}>{t('原点・グリッド')}</button>
+          <button onClick={() => { const u = up === 'z' ? 'y' : 'z'; setUp(u); api.current?.setUp(u); }} title={t('モデルの上方向を切り替えます')}>{t('上方向')} {up.toUpperCase()}</button>
+          <button onClick={() => { const o = pivotNote !== '原点'; api.current?.setPivot(o); }} data-testid="pivot">{t('回転中心：')}{t(pivotNote)}</button>
+          <button aria-pressed={ghost} onClick={() => { setGhost(!ghost); api.current?.setGhost(!ghost); }} title={t('部品を選んだとき、ほかの部品を薄く表示します')}>{t('ゴースト表示')}</button>
+          <button aria-pressed={colors} onClick={() => { setColors(!colors); api.current?.setColors(!colors); }}>{t('部品ごとに色分け')}</button>
+        </div>
         {size && <span className="mono dims">{t('外形')} {fmt(size.x)} × {fmt(size.y)} × {fmt(size.z)}</span>}
       </div>
       <div className={side ? 'three-layout' : undefined}>
@@ -229,7 +243,7 @@ export default function ThreeView({ object, side, up: up0 = 'z', env = false }: 
         {side}
       </div>
       {picked && <p className="picked" data-testid="picked">{t('選択中：')}<b>{picked}</b></p>}
-      <p className="hint">{t('クリックで部品を選択、ダブルクリックでその点を回転中心に、ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）で拡大縮小します。')}</p>
+      <p className="hint">{coarse ? t('タップで部品を選択、ダブルタップでその点を回転中心に、1本指で回転、2本指で移動・拡大縮小します。') : t('クリックで部品を選択、ダブルクリックでその点を回転中心に、ドラッグで回転、右ドラッグ（2本指）で移動、ホイール（ピンチ）で拡大縮小します。')}</p>
     </div>
   );
 }

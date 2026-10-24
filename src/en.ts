@@ -311,4 +311,8 @@ export const EN: Record<string, string> = {
   "参照している型": "Referenced types",
   "SQL 文（SELECT …）": "SQL statement (SELECT …)",
   "ライセンス表記": "Licenses",
+  "表示の設定": "View options",
+  "タップで部品を選択、ダブルタップでその点を回転中心に、1本指で回転、2本指で移動・拡大縮小します。": "Tap to select a part, double-tap to set the pivot, drag with one finger to rotate, use two fingers to pan and zoom.",
+  "（単位不明）": "(unknown units)",
+  "図形（線・円など）の外形の幅 × 高さ。単位は図面の設定（$INSUNITS）によります。": "Width × height of the drawing geometry (lines, circles, etc.). Units come from the drawing setting ($INSUNITS).",
 };
